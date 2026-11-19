@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4fbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<title>냉장고 파먹기</title>
+<style>
+  :root{
+    --ink:#2c2440;
+    --ink-2:#6d6484;
+    --line:#f1e6da;
+    --card:#ffffff;
+    --shadow:0 10px 26px rgba(118,86,54,.10), 0 2px 6px rgba(118,86,54,.05);
+    --r-lg:26px;
+    --sun:#ff9f1c;
+    --mint:#10b981;
+    --grape:#7c5cfc;
+    --pink:#ff5c8a;
+    --sky:#3d9be9;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    font-family:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", "맑은 고딕", system-ui, "Segoe UI", Roboto, sans-serif;
+    color:var(--ink); font-size:16px; line-height:1.45; min-height:100vh;
+    background-color:#f4fbff;
+    background-image:
+      radial-gradient(circle at 8% -6%, #dff4ff 0, rgba(223,244,255,0) 46%),
+      radial-gradient(circle at 92% -2%, #ffe9d6 0, rgba(255,233,214,0) 44%),
+      radial-gradient(circle at 50% 112%, #f0e9ff 0, rgba(240,233,255,0) 46%);
+    background-attachment:fixed;
+    -webkit-tap-highlight-color:transparent;
+  }
+  [hidden]{ display:none !important; }
+  button{ font-family:inherit; }
+  select,input{ font-family:inherit; }
+  h1,h2,h3,p{ word-break:keep-all; }
+  a{ color:#2f6fb5; }
+
+  .app{
+    max-width:1280px; margin:0 auto;
+    padding:clamp(14px,2vw,26px) clamp(14px,2.4vw,30px) 44px;
+    display:flex; flex-direction:column; gap:clamp(12px,1.5vw,18px);
+  }
+
+  /* ---------- 상단 ---------- */
+  .topbar{ display:flex; align-items:stretch; gap:12px; flex-wrap:wrap; }
+  .brand{
+    flex:1 1 420px; min-height:96px; border-radius:var(--r-lg); padding:13px 18px;
+    box-shadow:var(--shadow); position:relative; overflow:hidden;
+    background:linear-gradient(135deg,#e6f7ff 0%,#eef2ff 55%,#fff4e6 100%);
+    display:flex; align-items:center; gap:14px;
+  }
+  .brand::after{
+    content:'🧊'; position:absolute; right:-2px; bottom:-24px; font-size:100px;
+    opacity:.12; transform:rotate(-8deg); pointer-events:none;
+  }
+  .brand-text{ min-width:0; position:relative; z-index:1; }
+  .brand h1{ margin:0; font-size:clamp(20px,2.3vw,28px); font-weight:900; letter-spacing:-.025em; line-height:1.2; }
+  .brand-sub{ margin:5px 0 0; font-size:clamp(12px,1.2vw,14px); font-weight:800; color:var(--ink-2); display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .brand-sub .dot{ opacity:.5; }
+  .hub-btn{
+    flex:0 0 auto; border:none; border-radius:15px; min-height:48px; padding:0 15px; cursor:pointer;
+    background:#fff; color:#0d6b52; font-size:13.5px; font-weight:900; box-shadow:0 3px 10px rgba(118,86,54,.10);
+    touch-action:manipulation; position:relative; z-index:1;
+  }
+  .hub-btn:active{ transform:scale(.97); }
+  .actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .edit-btn{
+    border:none; border-radius:16px; min-height:48px; padding:0 16px; cursor:pointer;
+    background:#fff; color:#5b4a7a; font-size:14px; font-weight:900; box-shadow:var(--shadow);
+    touch-action:manipulation;
+  }
+  .edit-btn:active{ transform:scale(.97); }
+  .sync-pill{
+    font-size:11.5px; font-weight:900; padding:5px 10px; border-radius:999px; white-space:nowrap;
+    background:#fff; color:#8a7f70;
+  }
+  .sync-pill.ok{ background:#eefaf3; color:#0f7a55; }
+  .sync-pill.sync{ background:#eef5ff; color:#2f6fb5; }
+  .sync-pill.off{ background:#fff4e6; color:#b0610b; }
+  .sync-pill.err{ background:#fff0f3; color:#c6415a; }
+  .user-chip{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:16px; padding:5px 9px 5px 5px; box-shadow:var(--shadow); }
+  .uc-av{ width:34px; height:34px; border-radius:12px; flex:0 0 auto; display:grid; place-items:center; background:linear-gradient(135deg,#cdefff,#ffd9e8); font-size:15px; font-weight:900; color:#0b5d7a; }
+  .uc-meta{ display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+  .uc-meta b{ font-size:13px; font-weight:900; white-space:nowrap; }
+  .uc-role{ font-size:10.5px; font-weight:900; color:#a2937f; }
+  .ro-pill{ font-size:11.5px; font-weight:900; padding:6px 11px; border-radius:999px; background:#f3ecff; color:#5b3fa8; }
+
+  /* ---------- 카드 공통 ---------- */
+  .card{ background:var(--card); border-radius:var(--r-lg); box-shadow:var(--shadow); padding:clamp(13px,1.5vw,18px); }
+  .card-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:11px; }
+  .card-head h2{ margin:0; font-size:clamp(16px,1.7vw,20px); font-weight:900; letter-spacing:-.02em; }
+  .card-head h2 .count{ display:inline-grid; place-items:center; min-width:24px; height:24px; padding:0 7px; border-radius:999px; background:#ffefef; color:#c6415a; font-size:12.5px; vertical-align:1px; }
+  .head-note{ margin-left:auto; font-size:11.5px; font-weight:800; color:#a99c8c; }
+  .btn{
+    border:none; border-radius:13px; min-height:44px; padding:0 15px; cursor:pointer;
+    background:linear-gradient(135deg,#ffd43b,#ff9f1c); color:#5a3200; font-size:13.5px; font-weight:900;
+    touch-action:manipulation; white-space:nowrap;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn.sub{ background:#f1f6ff; color:#2f5f92; }
+  .btn.ghost{ background:#f7f1e9; color:#7a6a55; }
+  .btn.sm{ min-height:38px; padding:0 12px; font-size:12.5px; }
+  .btn.xs{ min-height:34px; padding:0 10px; font-size:12px; }
+  .btn.wide{ width:100%; min-height:52px; font-size:15.5px; }
+  .link-btn{ border:none; background:none; color:#7c6aa8; font-size:12.5px; font-weight:900; text-decoration:underline; cursor:pointer; padding:4px; }
+  .note{ margin:0; font-size:11.5px; font-weight:700; color:#a99c8c; line-height:1.6; }
+  .empty{ padding:22px 12px; text-align:center; font-size:13px; font-weight:800; color:#a99c8c; }
+
+  /* ---------- 월 식비 ---------- */
+  .bud-head{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; }
+  .bud-title{ font-size:14px; font-weight:900; color:#6d6484; }
+  .bud-title .bud-sub{ margin-left:6px; font-size:11.5px; font-weight:800; color:#a99c8c; }
+  .bud-fig{ margin-left:auto; font-size:13px; font-weight:900; color:#a99c8c; }
+  .bud-fig b{ font-size:clamp(22px,2.6vw,30px); font-weight:900; color:var(--ink); letter-spacing:-.03em; }
+  .bud-fig b.over{ color:#c6415a; }
+  .bud-bar{ margin:10px 0 9px; height:14px; border-radius:999px; background:#f4eee6; overflow:hidden; }
+  .bud-fill{ height:100%; border-radius:999px; background:linear-gradient(90deg,#5ac8fa,#7c5cfc); transition:width .4s ease; }
+  .bud-fill.over{ background:linear-gradient(90deg,#ff9f1c,#ff5c8a); }
+  .bud-foot{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; font-weight:800; color:#8a93a8; }
+  .bud-btns{ margin-left:auto; display:flex; gap:7px; flex-wrap:wrap; }
+
+  /* ---------- 장보기 알림 ---------- */
+  .shopping{ background:linear-gradient(150deg,#fff6f6,#fff9ee); border:2px solid #ffe1e1; }
+  .shop-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:6px; }
+  .shop-row{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:14px; padding:7px 9px; flex-wrap:wrap; }
+  .shop-main{ display:flex; flex-direction:column; min-width:0; flex:1 1 auto; }
+  .shop-main b{ font-size:13.5px; font-weight:900; }
+  .shop-main span{ font-size:11px; font-weight:800; color:#c6415a; }
+  .shop-row .btn{ margin-left:auto; }
+  .shop-more{ display:none; width:100%; margin-top:8px; min-height:40px; border:2px dashed #f0d8d8; background:#fff; color:#b0610b; border-radius:12px; font-size:12.5px; font-weight:900; cursor:pointer; }
+
+  /* ---------- 식재료 ---------- */
+  .inv-tools{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .search{
+    flex:1 1 200px; min-height:46px; padding:9px 14px; border-radius:14px; border:2px solid #e6dccf;
+    background:#fffdf9; font-size:14px; font-weight:800; color:var(--ink);
+  }
+  .search:focus{ outline:none; border-color:#74c7ff; box-shadow:0 0 0 4px rgba(116,199,255,.18); }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap; }
+  .chip{
+    border:2px solid #e9eff7; background:#fff; color:#5c6b80; border-radius:999px; min-height:40px; padding:0 12px;
+    font-size:12.5px; font-weight:900; cursor:pointer; touch-action:manipulation;
+  }
+  .chip b{ color:#a99c8c; margin-left:2px; }
+  .chip.on{ background:#e8f5ff; border-color:#a8dbff; color:#125e86; }
+  .chip.on b{ color:#125e86; }
+  .seg{ display:flex; background:#f4f0ea; border-radius:12px; padding:3px; gap:2px; }
+  .seg button{ border:none; background:none; border-radius:9px; min-height:36px; padding:0 11px; font-size:12.5px; font-weight:900; color:#8a7f70; cursor:pointer; }
+  .seg button.on{ background:#fff; color:var(--ink); box-shadow:0 2px 6px rgba(0,0,0,.07); }
+  .sel{
+    min-height:42px; padding:4px 10px; border-radius:12px; border:2px solid #e6dccf; background:#fffdf9;
+    font-size:13px; font-weight:900; color:var(--ink);
+  }
+  .tool-btns{ display:flex; gap:7px; margin-left:auto; flex-wrap:wrap; }
+  .inv-list{ display:grid; grid-template-columns:repeat(auto-fill,minmax(440px,1fr)); gap:6px; }
+  .item{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    border:2px solid #f5ede2; background:#fffdf9; border-radius:16px; padding:9px 11px;
+  }
+  .item.out{ background:#fbf9f6; border-style:dashed; }
+  .item.out .it-name b{ color:#a99c8c; text-decoration:line-through; }
+  .st-badge{ flex:0 0 auto; font-size:10.5px; font-weight:900; padding:4px 8px; border-radius:999px; }
+  .st-frozen{ background:#e8f2ff; color:#1f5fa8; }
+  .st-fridge{ background:#e2f8ff; color:#0b6b86; }
+  .st-room{ background:#fff3dd; color:#9a5b00; }
+  .st-sauce{ background:#f3ecff; color:#5b3fa8; }
+  .it-main{ flex:1 1 180px; min-width:0; }
+  .it-name{ display:flex; align-items:center; gap:5px; }
+  .it-name b{ font-size:15px; font-weight:900; letter-spacing:-.01em; }
+  .star{ font-size:12px; color:#f6a600; }
+  .it-meta{ font-size:11.5px; font-weight:800; color:#a2937f; margin-top:1px; }
+  .it-qty{ display:flex; align-items:center; gap:4px; flex:0 0 auto; background:#f7f6f2; border-radius:12px; padding:3px; }
+  .qbtn{ width:32px; height:32px; border:none; border-radius:9px; background:#fff; color:#5b4a7a; font-size:16px; font-weight:900; cursor:pointer; touch-action:manipulation; }
+  .qv{ min-width:44px; text-align:center; font-size:13.5px; font-weight:900; }
+  .it-acts{ display:flex; align-items:center; gap:4px; flex:0 0 auto; flex-wrap:wrap; }
+  .ic-btn{ width:34px; height:34px; border:none; border-radius:10px; background:#f7f1e9; font-size:14px; cursor:pointer; touch-action:manipulation; }
+  .ic-btn.on{ background:#fff3d6; }
+  .use-btn{ background:#eefaf3; color:#0f7a55; }
+  .item.out .use-btn{ background:#eef5ff; color:#2f6fb5; }
+  .restore{ background:#eef5ff; color:#2f6fb5; }
+
+  /* ---------- 레시피 ---------- */
+  .recipe-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:9px; }
+  .rc{ display:flex; gap:10px; border:2px solid #f5ede2; background:#fffdf9; border-radius:18px; padding:11px 12px; }
+  .rc-emoji{ font-size:26px; line-height:1; flex:0 0 auto; }
+  .rc-body{ min-width:0; flex:1 1 auto; }
+  .rc-title{ display:flex; align-items:center; gap:7px; }
+  .rc-title b{ font-size:14.5px; font-weight:900; }
+  .pct{ margin-left:auto; font-size:11.5px; font-weight:900; padding:3px 8px; border-radius:999px; background:#eefaf3; color:#0f7a55; white-space:nowrap; }
+  .pct.low{ background:#fff4e6; color:#b0610b; }
+  .rc-desc{ margin:4px 0 0; font-size:11.5px; font-weight:700; color:#8a93a8; line-height:1.5; }
+  .rc-ing{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .rc-ing span{ font-size:10.5px; font-weight:900; padding:3px 7px; border-radius:999px; background:#f1f7ee; color:#3f7a4f; }
+  .rc-ing span.miss{ background:#f6f1ea; color:#a99c8c; border:1px dashed #e6dccf; }
+  .more-row{ display:flex; justify-content:center; margin-top:10px; }
+  .ai-box{ margin-top:14px; border-top:2px dashed #f0e4d6; padding-top:13px; }
+  .ai-head{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:9px; }
+  .ai-head b{ font-size:15px; font-weight:900; }
+  .ai-at{ font-size:11.5px; font-weight:800; color:#a99c8c; }
+  .ai-head .btn{ margin-left:auto; }
+  .ai-empty{ font-size:12.5px; font-weight:700; color:#8a93a8; background:#f8fbff; border-radius:14px; padding:12px 13px; line-height:1.6; }
+  .ai-cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:9px; }
+  .ai-card{ background:linear-gradient(160deg,#fbf7ff,#f4fbff); border:2px solid #efe6ff; border-radius:18px; padding:12px 13px; }
+  .ai-card-head{ display:flex; align-items:center; gap:8px; }
+  .ai-card-head b{ font-size:14.5px; font-weight:900; }
+  .ai-card-head span{ margin-left:auto; font-size:11px; font-weight:900; color:#7c6aa8; }
+  .ai-why{ margin:5px 0 0; font-size:11.5px; font-weight:800; color:#8a7fa8; line-height:1.55; }
+  .ai-steps{ margin:7px 0 0; padding-left:17px; font-size:11.5px; font-weight:700; color:#6d6484; line-height:1.6; }
+
+  /* ---------- 주간 식단 ---------- */
+  .week-nav{ display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .week-nav button{ width:38px; height:38px; border:none; border-radius:11px; background:#f1f6ff; color:#2f5f92; font-size:17px; font-weight:900; cursor:pointer; }
+  .week-nav span{ font-size:13px; font-weight:900; min-width:110px; text-align:center; }
+  .week-range{ margin:-4px 0 10px; font-size:12px; font-weight:800; color:#a99c8c; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .meal-grid{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+  .meal-day{ border:2px solid #f5ede2; border-radius:18px; background:#fffdf9; padding:9px; display:flex; flex-direction:column; gap:6px; }
+  .meal-day.today{ border-color:#ffd98a; background:#fffbf0; }
+  .md-head{ display:flex; align-items:baseline; gap:6px; padding:0 2px 3px; }
+  .md-head b{ font-size:14px; font-weight:900; }
+  .md-head span{ font-size:11px; font-weight:800; color:#a99c8c; }
+  .md-head .today-chip{ margin-left:auto; font-size:10px; font-weight:900; color:#b0610b; background:#fff2d4; border-radius:999px; padding:2px 7px; }
+  .mslot{
+    text-align:left; border:2px solid #f2f6fb; background:#fff; border-radius:12px; padding:6px 9px;
+    display:flex; flex-direction:column; gap:1px; justify-content:center; cursor:pointer; touch-action:manipulation; min-height:56px;
+  }
+  .meal-day .mslot{ flex:1 1 auto; }
+  .mslot b{ font-size:10.5px; font-weight:900; color:#8a93a8; }
+  .mslot span{ font-size:12.5px; font-weight:800; color:var(--ink); line-height:1.35; }
+  .mslot span.empty{ color:#c4bcae; font-weight:700; }
+  .mslot div{ min-height:52px; }
+  .meal-readonly .mslot{ cursor:default; }
+
+  .footer-note{ margin:2px 0 0; text-align:center; font-size:11.5px; font-weight:700; color:#b3a696; }
+
+  /* ---------- 로그인 게이트 ---------- */
+  .gate{
+    position:fixed; inset:0; z-index:95; display:flex; align-items:center; justify-content:center; padding:18px; overflow:auto;
+    background:
+      radial-gradient(circle at 12% 0%, #dff4ff 0, rgba(223,244,255,0) 42%),
+      radial-gradient(circle at 88% 4%, #ffe9d6 0, rgba(255,233,214,0) 40%),
+      radial-gradient(circle at 50% 108%, #f0e9ff 0, rgba(240,233,255,0) 44%),
+      #f4fbff;
+  }
+  .gate-card{ width:100%; max-width:440px; background:#fff; border-radius:28px; padding:26px 24px 22px; box-shadow:0 24px 60px rgba(90,120,150,.18); }
+  .gate-brand{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .gate-logo{ width:54px; height:54px; border-radius:18px; background:linear-gradient(135deg,#d8f2ff,#ede4ff); display:grid; place-items:center; font-size:28px; }
+  .gate-brand h1{ margin:0; font-size:21px; font-weight:900; }
+  .gate-brand p{ margin:3px 0 0; font-size:12.5px; font-weight:800; color:var(--ink-2); }
+  .gate-note{ margin:0 0 12px; font-size:13px; font-weight:700; color:#6d6484; line-height:1.6; }
+  .gate-btn{
+    display:flex; align-items:center; justify-content:center; gap:7px; width:100%; min-height:54px;
+    border:none; border-radius:17px; background:linear-gradient(135deg,#8ed8ff,#7c5cfc); color:#fff;
+    font-size:16px; font-weight:900; text-decoration:none; cursor:pointer; margin-bottom:9px;
+  }
+  .gate-btn.sub{ background:#eff5ff; color:#2f5f92; }
+  .gate-link{ display:block; margin:2px auto 0; border:none; background:none; color:#7c6aa8; font-size:12.5px; font-weight:900; text-decoration:underline; cursor:pointer; }
+  .gate-hint{ margin:10px 0 0; font-size:11px; font-weight:700; color:#b3a696; line-height:1.6; text-align:center; }
+  .gate-form{ display:flex; flex-direction:column; gap:9px; margin-top:12px; padding-top:12px; border-top:2px dashed #eef1f6; }
+  .gate-form label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:900; color:#6d6484; }
+  .gate-form input{ min-height:46px; padding:8px 12px; border-radius:12px; border:2px solid #e6dccf; background:#fffdf9; font-size:14px; font-weight:800; color:var(--ink); }
+  .gate-msg{ margin:0; min-height:16px; font-size:12px; font-weight:800; color:#c6415a; }
+  .gate-msg.ok{ color:#12805c; }
+
+  /* ---------- 시트(모달) ---------- */
+  .sheet{ position:fixed; inset:0; z-index:88; display:flex; align-items:center; justify-content:center; padding:clamp(8px,1.6vw,22px); background:rgba(35,45,55,.42); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+  .sheet-card{ width:100%; max-width:560px; max-height:92vh; display:flex; flex-direction:column; background:#fffdf9; border-radius:26px; overflow:hidden; box-shadow:0 26px 64px rgba(0,0,0,.3); }
+  .sheet-card.wide{ max-width:760px; }
+  .sheet-head{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 15px 11px; border-bottom:2px solid #f6ece0; background:linear-gradient(135deg,#eef9ff 0%,#f6f0ff 100%); }
+  .sheet-head h2{ margin:0; font-size:clamp(17px,2vw,20px); font-weight:900; letter-spacing:-.02em; }
+  .sheet-body{ flex:1 1 auto; overflow:auto; padding:14px 15px 18px; -webkit-overflow-scrolling:touch; }
+  .x{ width:36px; height:36px; border-radius:11px; border:none; background:#fff; color:#8a7f70; font-size:15px; font-weight:900; cursor:pointer; }
+  .form{ display:flex; flex-direction:column; gap:10px; }
+  .form label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:900; color:#6d6484; }
+  .form input, .form select, .form textarea{ min-height:46px; padding:8px 12px; border-radius:12px; border:2px solid #e6dccf; background:#fffdf9; font-size:14px; font-weight:800; color:var(--ink); }
+  .form textarea{ min-height:76px; resize:vertical; }
+  .form input:focus, .form select:focus, .form textarea:focus{ outline:none; border-color:#74c7ff; box-shadow:0 0 0 4px rgba(116,199,255,.18); }
+  .frow{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .form label.chk{ flex-direction:row; align-items:center; gap:8px; font-size:13px; }
+  .form label.chk input{ width:22px; height:22px; min-height:0; padding:0; margin:0; accent-color:#5ac8fa; }
+  .form-msg{ min-height:16px; margin:0; font-size:12px; font-weight:800; color:#c6415a; }
+  .form-msg.ok{ color:#12805c; }
+
+  /* ---------- 영수증 ---------- */
+  .rec-drop{ text-align:center; font-size:52px; line-height:1; padding:16px 8px 6px; }
+  .rec-drop b{ display:block; font-size:16px; margin-top:8px; }
+  .rec-drop p{ margin:5px 0 14px; font-size:12px; font-weight:700; color:#8a93a8; line-height:1.6; }
+  .guide{ margin-top:12px; background:#f8f5ff; border:2px dashed #e3d8ff; border-radius:16px; padding:12px 13px; }
+  .guide b{ font-size:13px; }
+  .guide p{ margin:5px 0 8px; font-size:11.5px; font-weight:700; color:#7c6aa8; line-height:1.6; }
+  .guide a{ font-size:11.5px; font-weight:900; }
+  .guide .btn{ margin-top:9px; }
+  .spin{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:26px 10px; }
+  .spin .ring{ width:44px; height:44px; border-radius:50%; border:4px solid #e3f2ff; border-top-color:#5ac8fa; animation:spin .9s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .spin p{ margin:0; font-size:13px; font-weight:800; color:#6d6484; }
+  .rec-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:9px; }
+  .rec-head label{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:900; color:#6d6484; }
+  .rec-head input{ min-height:42px; padding:6px 10px; border-radius:11px; border:2px solid #e6dccf; background:#fffdf9; font-size:13px; font-weight:800; }
+  .rec-head span{ margin-left:auto; font-size:12px; font-weight:900; color:#2f6fb5; }
+  .rec-rows{ display:flex; flex-direction:column; gap:6px; margin-bottom:11px; }
+  .rec-row{ display:grid; grid-template-columns:auto minmax(90px,1.5fr) 56px 52px 108px 82px; gap:5px; align-items:center; background:#fff; border:2px solid #f1e9de; border-radius:12px; padding:5px 7px; }
+  .rec-row.off{ opacity:.45; }
+  .rec-row input[type="checkbox"]{ width:20px; height:20px; accent-color:#5ac8fa; margin:0; }
+  .rec-row input, .rec-row select{ width:100%; min-height:36px; padding:4px 7px; border-radius:8px; border:2px solid #eee5d9; background:#fffdf9; font-size:12.5px; font-weight:800; color:var(--ink); }
+
+  /* ---------- 설정 ---------- */
+  .set-sec{ border-bottom:2px dashed #f3eade; padding-bottom:13px; margin-bottom:13px; }
+  .set-sec:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .set-sec h3{ margin:0 0 6px; font-size:14px; font-weight:900; display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .set-sec .badge{ font-size:10.5px; font-weight:900; padding:3px 8px; border-radius:999px; background:#f1f1f1; color:#8a7f70; }
+  .set-sec .badge.ok{ background:#eefaf3; color:#0f7a55; }
+  .set-sec .row{ display:flex; gap:7px; flex-wrap:wrap; margin-top:7px; }
+  .set-sec input{ flex:1 1 180px; min-height:44px; padding:7px 11px; border-radius:11px; border:2px solid #e6dccf; background:#fffdf9; font-size:13.5px; font-weight:800; color:var(--ink); }
+  .set-info{ font-size:11.5px; font-weight:700; color:#8a93a8; line-height:1.7; }
+  .set-info code{ background:#f4f1ea; border-radius:5px; padding:1px 4px; font-size:10.5px; }
+
+  /* ---------- 허브 ---------- */
+  .hub{ position:fixed; inset:0; z-index:94; display:flex; align-items:center; justify-content:center; padding:clamp(10px,2vw,26px); overflow:auto;
+    background:
+      radial-gradient(circle at 12% 0%, #dff4ff 0, rgba(223,244,255,0) 42%),
+      radial-gradient(circle at 88% 4%, #ffe9d6 0, rgba(255,233,214,0) 40%),
+      radial-gradient(circle at 50% 108%, #f0e9ff 0, rgba(240,233,255,0) 44%),
+      #f4fbff;
+  }
+  .hub-card{ width:100%; max-width:860px; background:#fffdf9; border-radius:30px; padding:clamp(16px,3vw,28px); box-shadow:0 26px 64px rgba(90,120,150,.2); }
+  .hub-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  .hub-head h2{ margin:0; font-size:clamp(21px,2.6vw,27px); font-weight:900; letter-spacing:-.025em; }
+  .hub-sub{ margin:5px 0 0; font-size:13px; font-weight:800; color:var(--ink-2); }
+  .hub-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(9px,1.4vw,14px); }
+  .hub-tile{ word-break:keep-all; display:flex; flex-direction:column; gap:7px; text-align:left; min-height:160px; border-radius:24px; border:2px solid #f1e6da; background:#fff; padding:16px; cursor:pointer; text-decoration:none; color:inherit; position:relative; overflow:hidden; box-shadow:0 6px 16px rgba(118,86,54,.06); touch-action:manipulation; }
+  .hub-tile .ht-emoji{ font-size:38px; line-height:1; }
+  .hub-tile .ht-body{ display:flex; flex-direction:column; gap:4px; }
+  .hub-tile .ht-title{ font-size:17.5px; font-weight:900; letter-spacing:-.02em; }
+  .hub-tile .ht-desc{ font-size:12px; font-weight:800; color:var(--ink-2); line-height:1.5; }
+  .hub-tile.kids{ background:linear-gradient(150deg,#fff7e6,#ffeef5); }
+  .hub-tile.fridge{ background:linear-gradient(150deg,#eaf7ff,#f1f0ff); }
+  .hub-tile.ledger{ background:#faf8f4; border-style:dashed; cursor:default; }
+  .hub-tile .ht-badge{ position:absolute; top:11px; right:11px; font-size:10.5px; font-weight:900; padding:4px 8px; border-radius:999px; background:#fff; color:#8a6a2f; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+  .hub-tile .ht-go{ margin-top:auto; font-size:12.5px; font-weight:900; color:#0f6b8a; }
+  .hub-note{ margin:14px 0 0; font-size:11.5px; font-weight:700; color:#a99c8c; line-height:1.6; }
+
+  /* ---------- 토스트 ---------- */
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(8px); z-index:120; max-width:calc(100vw - 28px); background:#2c2440; color:#fff; font-size:13px; font-weight:800; padding:11px 16px; border-radius:14px; box-shadow:0 12px 30px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; text-align:center; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.err{ background:#c6415a; }
+
+  @media (max-width:900px){
+    .meal-grid{ grid-template-columns:1fr; }
+    .inv-list{ grid-template-columns:1fr; }
+    .meal-day{ flex-direction:row; align-items:stretch; flex-wrap:wrap; }
+    .md-head{ flex:0 0 100%; }
+    .mslot{ flex:1 1 30%; min-width:88px; }
+  }
+  @media (max-width:700px){
+    .shop-list{ grid-template-columns:1fr; }
+    .shop-list:not(.open) .shop-row:nth-child(n+10){ display:none; }
+    .shop-more{ display:block; }
+    .hub-grid{ grid-template-columns:1fr; }
+    .hub-tile{ min-height:0; flex-direction:row; align-items:center; gap:13px; padding:13px 14px; }
+    .hub-tile .ht-emoji{ font-size:31px; }
+    .hub-tile .ht-go{ margin:0 0 0 auto; white-space:nowrap; }
+    .hub-tile .ht-badge{ display:none; }
+    .it-main{ flex:1 1 100%; order:2; }
+    .st-badge{ order:1; }
+    .it-qty{ order:3; }
+    .it-acts{ order:4; margin-left:auto; }
+    .tool-btns{ width:100%; margin-left:0; }
+    .tool-btns .btn{ flex:1 1 auto; }
+    .rec-row{ grid-template-columns:auto 1fr 1fr; }
+    .rec-row .rs, .rec-row .rp{ grid-column:span 1; }
+    .bud-fig{ margin-left:0; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="appRoot" hidden>
+
+  <header class="topbar">
+    <div class="brand">
+      <button class="hub-btn" type="button" data-act="hub-open" aria-haspopup="dialog">🏠 허브</button>
+      <div class="brand-text">
+        <h1>🧊 냉장고 파먹기</h1>
+        <p class="brand-sub">
+          <span id="todayLine">-</span>
+          <span class="dot">·</span>
+          <span id="invLine">재고 0개</span>
+          <span class="sync-pill" id="syncPill">☁️ 준비</span>
+        </p>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="ro-pill" id="roPill" hidden>👀 보기 전용</span>
+      <div class="user-chip" id="userChip" hidden>
+        <span class="uc-av" id="ucAv">·</span>
+        <span class="uc-meta"><b id="ucName">-</b><span class="uc-role" id="ucRole">-</span></span>
+      </div>
+      <button class="edit-btn" type="button" data-act="settings-open">⚙️ 설정</button>
+    </div>
+  </header>
+
+  <section class="card budget" id="budgetCard" aria-live="polite"></section>
+
+  <section class="card shopping" id="shoppingSec" hidden aria-live="polite"></section>
+
+  <section class="card inv" id="invSec">
+    <div class="card-head">
+      <h2>🥕 식재료</h2>
+      <span class="head-note" id="invNote"></span>
+    </div>
+    <div class="inv-tools">
+      <input class="search" id="searchInput" type="search" placeholder="🔍 이름으로 찾기" autocomplete="off" aria-label="식재료 검색">
+      <div class="chips" id="storageChips"></div>
+      <div class="seg" id="statusSeg" role="group" aria-label="재고 상태"></div>
+      <select class="sel" id="sortSel" aria-label="정렬">
+        <option value="new">최신순</option>
+        <option value="old">오래된순</option>
+        <option value="name">이름순</option>
+        <option value="qty">수량 적은 순</option>
+      </select>
+      <div class="tool-btns" id="toolBtns"></div>
+    </div>
+    <div class="inv-list" id="invList"></div>
+  </section>
+
+  <section class="card recipes" id="recipeSec"></section>
+
+  <section class="card meals" id="mealSec"></section>
+
+  <p class="footer-note">재료와 식단은 비공개 GitHub 저장소(<b>fridge/</b>)와 이 기기에 함께 저장돼요 · Gemini 키는 이 브라우저에만 있어요</p>
+</div>
+
+<div class="gate" id="gateScreen" hidden>
+  <div class="gate-card">
+    <div class="gate-brand">
+      <span class="gate-logo">🧊</span>
+      <div>
+        <h1>냉장고 파먹기</h1>
+        <p>가족만 들어올 수 있어요</p>
+      </div>
+    </div>
+    <p class="gate-note" id="gateMsg">아이 대시보드에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.</p>
+    <a class="gate-btn" id="gateKidsLink" href="../kids-dashboard/">🏠 아이 대시보드로 가기</a>
+    <button class="gate-link" type="button" data-act="gate-connect">기기가 아직 연결되지 않았나요? 직접 연결하기</button>
+    <form class="gate-form" id="gateForm" hidden autocomplete="off">
+      <label>GitHub 아이디<input id="gOwner" value="jadenfamily" maxlength="39" spellcheck="false"></label>
+      <label>데이터 저장소 이름<input id="gRepo" value="kids-dashboard-data" maxlength="100" spellcheck="false"></label>
+      <label>GitHub 토큰 (Contents: Read and write)<input id="gToken" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false"></label>
+      <button class="gate-btn sub" type="submit" id="gBtn">연결하기</button>
+      <p class="gate-msg" id="gMsg"></p>
+    </form>
+    <p class="gate-hint">연결 정보와 로그인 상태는 같은 주소(jadenfamily.github.io)의 브라우저 저장소를 아이 대시보드와 함께 써요.</p>
+  </div>
+</div>
+
+<div class="sheet" id="itemModal" hidden role="dialog" aria-modal="true" aria-labelledby="itemTitle">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2 id="itemTitle">식재료 추가</h2><button class="x" type="button" data-act="modal-close" data-m="itemModal" aria-label="닫기">✕</button></div>
+    <div class="sheet-body" id="itemBody"></div>
+  </div>
+</div>
+
+<div class="sheet" id="receiptModal" hidden role="dialog" aria-modal="true" aria-labelledby="receiptTitle">
+  <div class="sheet-card wide">
+    <div class="sheet-head"><h2 id="receiptTitle">📷 영수증으로 등록</h2><button class="x" type="button" data-act="modal-close" data-m="receiptModal" aria-label="닫기">✕</button></div>
+    <div class="sheet-body" id="receiptBody"></div>
+  </div>
+</div>
+
+<div class="sheet" id="settingsModal" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2 id="settingsTitle">⚙️ 설정</h2><button class="x" type="button" data-act="modal-close" data-m="settingsModal" aria-label="닫기">✕</button></div>
+    <div class="sheet-body" id="settingsBody"></div>
+  </div>
+</div>
+
+<div class="sheet" id="mealModal" hidden role="dialog" aria-modal="true" aria-labelledby="mealTitle">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2 id="mealTitle">🍽 식단 기록</h2><button class="x" type="button" data-act="modal-close" data-m="mealModal" aria-label="닫기">✕</button></div>
+    <div class="sheet-body" id="mealBody"></div>
+  </div>
+</div>
+
+<div class="sheet" id="expenseModal" hidden role="dialog" aria-modal="true" aria-labelledby="expenseTitle">
+  <div class="sheet-card">
+    <div class="sheet-head"><h2 id="expenseTitle">💰 지출 기록</h2><button class="x" type="button" data-act="modal-close" data-m="expenseModal" aria-label="닫기">✕</button></div>
+    <div class="sheet-body" id="expenseBody"></div>
+  </div>
+</div>
+
+<div class="hub" id="hubScreen" hidden role="dialog" aria-modal="true" aria-labelledby="hubTitle">
+  <div class="hub-card">
+    <div class="hub-head">
+      <div>
+        <h2 id="hubTitle">🏠 우리 집 대시보드</h2>
+        <p class="hub-sub" id="hubSub">오늘은 어디로 갈까요?</p>
+      </div>
+      <button class="x" type="button" data-act="hub-close" aria-label="허브 닫기">✕</button>
+    </div>
+    <div class="hub-grid" id="hubGrid"></div>
+    <p class="hub-note">📒 가계부는 같은 저장소 구조(<b>ledger/</b>)로 다음에 만들 예정이에요. 재료 가격은 그때 그대로 이어 쓸 수 있어요.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============ 상수 ============ */
+  var API_BASE = 'https://api.github.com';
+  var DEVICE_KEY = 'kidsDashboard.device.v1';
+  var SESSION_KEY = 'kidsDashboard.session.v1';
+  var HUB_KEY = 'kidsDashboard.hub.v1';
+  var LOCAL_KEY = 'fridgeDashboard.v1';
+  var SHA_KEY = 'fridgeDashboard.sha.v1';
+  var KEY_KEY = 'fridgeDashboard.geminiKey.v1';
+  var BUDGET_DEFAULT = 700000;
+  var PATH_INV = 'fridge/inventory.json';
+  var PATH_MEALS = 'fridge/meals.json';
+  var PATH_SET = 'fridge/settings.json';
+  var GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+
+  var ROLES = {
+    admin: { label: '관리자', edit: 1 },
+    parent: { label: '보호자', edit: 1 },
+    child: { label: '아이' },
+    viewer: { label: '보기 전용' }
+  };
+
+  var STORAGES = [
+    { key: 'frozen', label: '냉동', emoji: '❄️', cls: 'st-frozen' },
+    { key: 'fridge', label: '냉장', emoji: '🧊', cls: 'st-fridge' },
+    { key: 'room', label: '실온', emoji: '🧺', cls: 'st-room' },
+    { key: 'sauce', label: '소스/양념', emoji: '🧂', cls: 'st-sauce' }
+  ];
+  var ST_LABEL = { frozen: '냉동', fridge: '냉장', room: '실온', sauce: '소스/양념' };
+  var ST_CLS = { frozen: 'st-frozen', fridge: 'st-fridge', room: 'st-room', sauce: 'st-sauce' };
+  var ST_FROM_LABEL = { '냉동': 'frozen', '냉장': 'fridge', '실온': 'room', '소스/양념': 'sauce', '소스': 'sauce', '양념': 'sauce' };
+
+  var DAYS = [
+    { k: 'mon', n: '월' }, { k: 'tue', n: '화' }, { k: 'wed', n: '수' },
+    { k: 'thu', n: '목' }, { k: 'fri', n: '금' }
+  ];
+  var SLOTS = [{ k: 'b', n: '아침' }, { k: 'l', n: '점심' }, { k: 'd', n: '저녁' }];
+
+  var SEED = {
+    frozen: ['치즈스틱', '물만두', '블루베리', '명란', '피자', '건버섯', '주먹밥', '떡국떡', '볶음밥'],
+    fridge: ['단호박(미니)', '당근', '달걀', '또띠아', '마늘', '김치', '떡국떡', '냉면', '무', '새송이', '한방', '매생이'],
+    room: ['소면', '아몬드가루', '부침가루', '라면', '미역', '스파게티면'],
+    sauce: ['케첩', '고추장', '된장', '홀그레인', '딸기잼', '소금', '크림치즈', '버터', '참치액', '연두', '간장', '굴소스', '바베큐소스', '불닭소스', '쌈장', '레몬', '돈까스소스', '고춧가루', '식초', '마요네즈', '샐러드소스', '후추', '월계수잎', '참기름', '후리카케', '깨', '꿀', '설탕', '알룰로스']
+  };
+  var STAPLES = [
+    { n: '식빵', s: 'room' }, { n: '원두', s: 'room' }, { n: '햄', s: 'fridge' }, { n: '달걀', s: 'fridge' },
+    { n: '양파', s: 'fridge' }, { n: '대파', s: 'fridge' }, { n: '닭가슴살', s: 'frozen' }, { n: '바나나', s: 'room' },
+    { n: '요거트', s: 'fridge' }, { n: '새우', s: 'frozen' }, { n: '치즈', s: 'fridge' }, { n: '두부', s: 'fridge' },
+    { n: '팽이버섯', s: 'fridge' }, { n: '떡갈비', s: 'frozen' }, { n: '맛살', s: 'frozen' }, { n: '미역줄기', s: 'fridge' },
+    { n: '샐러드', s: 'fridge' }, { n: '멸치', s: 'frozen' }, { n: '우유', s: 'fridge' }, { n: '쌀', s: 'room' }
+  ];
+
+  /* 집에서 자주 해 먹는 한식 레시피 — 재료 매칭용 */
+  var RECIPES = [
+    { e: '🍚', t: '김치볶음밥', d: '김치와 달걀만 있으면 15분', ing: ['김치', '달걀', '대파', '밥', '참기름'] },
+    { e: '🍲', t: '김치찌개', d: '김치·두부로 끓이는 기본 찌개', ing: ['김치', '돼지고기', '두부', '대파'] },
+    { e: '🥘', t: '된장찌개', d: '된장 베이스로 채소 넣고 끓이기', ing: ['된장', '두부', '애호박', '감자', '대파'] },
+    { e: '🍳', t: '달걀찜', d: '달걀과 소금만으로 부드럽게', ing: ['달걀', '대파', '소금'] },
+    { e: '🍄', t: '버터간장 새송이구이', d: '새송이+버터+간장, 10분', ing: ['새송이', '버터', '간장', '마늘'] },
+    { e: '🍝', t: '명란버터파스타', d: '명란젓과 버터로 고소하게', ing: ['명란', '버터', '스파게티면', '마늘'] },
+    { e: '🍜', t: '매생이국', d: '매생이 넣고 시원하게 끓이기', ing: ['매생이', '마늘', '소금'] },
+    { e: '🥣', t: '무된장국', d: '무를 넣어 달큰한 된장국', ing: ['무', '된장', '대파', '마늘'] },
+    { e: '🍲', t: '떡국', d: '떡국떡으로 간단히 한 끼', ing: ['떡국떡', '달걀', '대파', '소고기'] },
+    { e: '🥟', t: '물만두국', d: '물만두 넣고 달걀 풀기', ing: ['물만두', '달걀', '대파'] },
+    { e: '🍜', t: '물냉면', d: '냉면 사리로 시원한 한 그릇', ing: ['냉면', '달걀', '오이', '겨자'] },
+    { e: '🍕', t: '또띠아 피자', d: '또띠아 위에 케첩·치즈·햄', ing: ['또띠아', '케첩', '치즈', '햄'] },
+    { e: '🍜', t: '비빔국수', d: '고추장 양념에 소면 비비기', ing: ['소면', '고추장', '식초', '설탕', '참기름', '오이'] },
+    { e: '🍜', t: '라면 한 그릇', d: '달걀·대파 넣고 끓이기', ing: ['라면', '달걀', '대파'] },
+    { e: '🥞', t: '김치전', d: '김치와 부침가루로 노릇하게', ing: ['김치', '부침가루'] },
+    { e: '🥞', t: '매생이전', d: '매생이 넣은 바삭한 전', ing: ['매생이', '부침가루'] },
+    { e: '🍄', t: '건버섯 볶음', d: '불린 건버섯을 간장·참기름에', ing: ['건버섯', '간장', '참기름', '마늘'] },
+    { e: '🥗', t: '단호박 샐러드', d: '찐 단호박에 요거트 드레싱', ing: ['단호박', '요거트', '아몬드가루'] },
+    { e: '🫐', t: '블루베리 요거트볼', d: '냉동 블루베리로 간단 디저트', ing: ['블루베리', '요거트'] },
+    { e: '🧀', t: '치즈스틱 에어프라이', d: '냉동 치즈스틱 180도 8분', ing: ['치즈스틱'] },
+    { e: '🍙', t: '참기름 주먹밥', d: '밥에 참기름·깨 넣고 동글동글', ing: ['밥', '김', '참기름', '깨'] },
+    { e: '🔥', t: '불닭볶음면', d: '불닭소스로 매콤하게', ing: ['라면', '불닭소스', '달걀'] },
+    { e: '🍝', t: '버터 마늘 파스타', d: '마늘·버터만으로 기본 파스타', ing: ['스파게티면', '마늘', '버터'] },
+    { e: '🍤', t: '새우 볶음밥', d: '냉동 새우로 새우볶음밥', ing: ['새우', '밥', '달걀', '대파'] },
+    { e: '🥘', t: '두부김치', d: '두부 데쳐 김치와 볶아내기', ing: ['두부', '김치', '대파'] },
+    { e: '🍳', t: '계란후라이', d: '달걀 하나로 든든한 반찬', ing: ['달걀', '소금'] },
+    { e: '🍕', t: '냉동피자', d: '피자 데워서 간단 야식', ing: ['피자'] },
+    { e: '🍖', t: '떡갈비 구이', d: '떡갈비 에어프라이 한 접시', ing: ['떡갈비'] }
+  ];
+
+  var PROMPT_RECEIPT = '너는 한국 가정의 냉장고 관리 도우미야. 첨부한 영수증 또는 장보기 목록 사진에서 구매한 식재료를 읽어 정리해줘.\n' +
+    '규칙: 1) 식재료·식품만 (봉투값·할인·적립·비식품 제외) 2) 수량과 단위는 사진에서 확인되면 채우고 모르면 수량 1, 단위 "개" 3) 가격은 그 항목의 금액(원, 숫자만), 모르면 0 4) 보관 구분은 반드시 냉동/냉장/실온/소스/양념 중 하나 — 고기·해산물·유제품·채소·두부·김치는 냉장, 만두·아이스크림·튀김·볶음밥·냉동밥은 냉동, 라면·면·쌀·가루·통조림·견과는 실온, 소스·잼·양념·기름·장류는 소스/양념 5) 구매일은 영수증에 적힌 날짜(YYYY-MM-DD), 없으면 오늘 6) 이름은 한국어로 짧게.';
+  var SCHEMA_RECEIPT = {
+    type: 'OBJECT',
+    properties: {
+      purchaseDate: { type: 'STRING' },
+      items: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            name: { type: 'STRING' },
+            qty: { type: 'NUMBER' },
+            unit: { type: 'STRING' },
+            price: { type: 'NUMBER' },
+            storage: { type: 'STRING', enum: ['냉동', '냉장', '실온', '소스/양념'] }
+          },
+          required: ['name', 'storage']
+        }
+      }
+    },
+    required: ['items']
+  };
+  var SCHEMA_RECIPES = {
+    type: 'OBJECT',
+    properties: {
+      recipes: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            title: { type: 'STRING' },
+            reason: { type: 'STRING' },
+            minutes: { type: 'NUMBER' },
+            ingredients: { type: 'ARRAY', items: { type: 'STRING' } },
+            missing: { type: 'ARRAY', items: { type: 'STRING' } },
+            steps: { type: 'ARRAY', items: { type: 'STRING' } }
+          },
+          required: ['title', 'ingredients']
+        }
+      }
+    },
+    required: ['recipes']
+  };
+
+  /* ============ 상태 ============ */
+  function emptyState() {
+    return {
+      inventory: { version: 1, updatedAt: '', items: [] },
+      meals: { version: 1, updatedAt: '', budget: BUDGET_DEFAULT, weeks: {}, expenses: [] },
+      settings: { version: 1, updatedAt: '', recipes: [], recipesAt: '', prefs: {} }
+    };
+  }
+  var state = emptyState();
+  var cloud = {
+    conn: null, me: null, users: null, session: null,
+    status: 'idle', statusAt: 0, sha: {},
+    dirty: { inventory: false, meals: false, settings: false },
+    timer: 0, saving: false
+  };
+  var ui = {
+    search: '', storages: { frozen: true, fridge: true, room: true, sauce: true },
+    status: 'in', sort: 'new', recipeAll: false, weekStart: '',
+    itemEdit: '', mealDay: '', rec: null, keyMsg: '', aiBusy: false, gateMode: '', shopOpen: false
+  };
+
+  /* ============ 유틸 ============ */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function uid(p) {
+    return (p || 'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function num(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function nowIso() { return new Date().toISOString(); }
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function parseYmd(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+  }
+  function isYmd(s) { return !!parseYmd(s); }
+  function fmtWon(n) { return Number(num(n)).toLocaleString('ko-KR'); }
+  function fmtQty(q) { var n = num(q); return (Math.round(n * 100) / 100).toString(); }
+  function daysAgo(s) {
+    var d = parseYmd(s);
+    if (!d) return '';
+    var t = new Date(); t.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
+    var diff = Math.round((t - d) / 86400000);
+    if (diff < 0) return Math.abs(diff) + '일 후';
+    if (diff === 0) return '오늘';
+    if (diff === 1) return '어제';
+    return diff + '일 전';
+  }
+  function norm(s) {
+    return String(s || '').toLowerCase().replace(/\(.*?\)/g, '').replace(/\s+/g, '');
+  }
+  function normStorage(v) {
+    var s = String(v || '').trim();
+    if (ST_LABEL[s]) return s;
+    if (ST_FROM_LABEL[s]) return ST_FROM_LABEL[s];
+    return 'fridge';
+  }
+  function dateLine() {
+    try {
+      return new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+    } catch (e) { return todayStr(); }
+  }
+  function toast(msg, isErr) {
+    var t = $('toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    t.hidden = false;
+    if (t._timer) window.clearTimeout(t._timer);
+    t._timer = window.setTimeout(function () { t.className = 'toast'; t.hidden = true; }, 2600);
+  }
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { window.localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
+  function ssGet(k) { try { return window.sessionStorage.getItem(k); } catch (e) { return null; } }
+  function ssDel(k) { try { window.sessionStorage.removeItem(k); } catch (e) { /* 무시 */ } }
+  function fieldVal(id) { var el = $(id); return el ? String(el.value == null ? '' : el.value) : ''; }
+
+  /* ============ 데이터 정규화 ============ */
+  function makeItem(o) {
+    o = o || {};
+    var qty = num(o.qty);
+    var status = o.status === 'out' ? 'out' : (qty > 0 ? 'in' : 'out');
+    return {
+      id: o.id || uid('it'),
+      name: String(o.name || '').trim().slice(0, 40),
+      qty: Math.max(0, qty),
+      unit: String(o.unit || '개').slice(0, 6),
+      storage: normStorage(o.storage),
+      boughtAt: isYmd(o.boughtAt) ? o.boughtAt : '',
+      price: Math.max(0, Math.round(num(o.price))),
+      staple: !!o.staple,
+      minQty: Math.max(1, num(o.minQty) || 1),
+      status: status,
+      note: String(o.note || '').slice(0, 60),
+      category: String(o.category || '').slice(0, 20),
+      createdAt: num(o.createdAt) || Date.now(),
+      updatedAt: num(o.updatedAt) || Date.now()
+    };
+  }
+  function normalizeInventory(raw) {
+    var out = { version: 1, updatedAt: (raw && raw.updatedAt) || '', items: [] };
+    var list = (raw && raw.items) || [];
+    for (var i = 0; i < list.length; i++) {
+      var it = makeItem(list[i]);
+      if (it.name) out.items.push(it);
+    }
+    return out;
+  }
+  function normalizeMeals(raw) {
+    raw = raw || {};
+    var out = { version: 1, updatedAt: raw.updatedAt || '', budget: Math.max(0, num(raw.budget) || BUDGET_DEFAULT), weeks: {}, expenses: [] };
+    var weeks = raw.weeks || {};
+    for (var k in weeks) {
+      if (!Object.prototype.hasOwnProperty.call(weeks, k)) continue;
+      var w = weeks[k] || {};
+      var wk = { start: isYmd(w.start) ? w.start : '', days: {} };
+      for (var i = 0; i < DAYS.length; i++) {
+        var d = (w.days && w.days[DAYS[i].k]) || {};
+        wk.days[DAYS[i].k] = { b: String(d.b || '').slice(0, 60), l: String(d.l || '').slice(0, 60), d: String(d.d || '').slice(0, 60) };
+      }
+      out.weeks[k] = wk;
+    }
+    var ex = raw.expenses || [];
+    for (var j = 0; j < ex.length && j < 500; j++) {
+      var e = ex[j] || {};
+      if (!num(e.amount)) continue;
+      out.expenses.push({ id: e.id || uid('ex'), date: isYmd(e.date) ? e.date : todayStr(), amount: Math.round(num(e.amount)), note: String(e.note || '').slice(0, 40), createdAt: num(e.createdAt) || Date.now() });
+    }
+    return out;
+  }
+  function normalizeSettings(raw) {
+    raw = raw || {};
+    var out = { version: 1, updatedAt: raw.updatedAt || '', recipes: [], recipesAt: raw.recipesAt || '', prefs: raw.prefs || {} };
+    var list = raw.recipes || [];
+    for (var i = 0; i < list.length && i < 10; i++) {
+      var r = list[i] || {};
+      if (!r.title) continue;
+      out.recipes.push({
+        title: String(r.title).slice(0, 60),
+        reason: String(r.reason || '').slice(0, 160),
+        minutes: Math.max(0, Math.round(num(r.minutes))),
+        ingredients: (r.ingredients || []).slice(0, 14).map(function (x) { return String(x).slice(0, 30); }),
+        missing: (r.missing || []).slice(0, 10).map(function (x) { return String(x).slice(0, 30); }),
+        steps: (r.steps || []).slice(0, 8).map(function (x) { return String(x).slice(0, 160); })
+      });
+    }
+    return out;
+  }
+
+  /* ============ 시드 ============ */
+  function seedInventory() {
+    var now = Date.now(), c = 0, items = [];
+    for (var s = 0; s < STORAGES.length; s++) {
+      var st = STORAGES[s];
+      var list = SEED[st.key] || [];
+      for (var i = 0; i < list.length; i++) {
+        items.push(makeItem({ name: list[i], storage: st.key, qty: 1, unit: '개', boughtAt: todayStr(), createdAt: now - (c++) * 1000 }));
+      }
+    }
+    for (var k = 0; k < STAPLES.length; k++) {
+      var sp = STAPLES[k], found = null;
+      for (var j = 0; j < items.length; j++) {
+        if (norm(items[j].name) === norm(sp.n)) { found = items[j]; break; }
+      }
+      if (found) {
+        found.staple = true;
+        found.minQty = 1;
+      } else {
+        items.push(makeItem({ name: sp.n, storage: sp.s, qty: 0, unit: '개', status: 'out', staple: true, minQty: 1, createdAt: now - (c++) * 1000 }));
+      }
+    }
+    return { version: 1, updatedAt: nowIso(), items: items };
+  }
+
+  /* ============ 로컬 캐시 ============ */
+  function saveLocal() {
+    try {
+      lsSet(LOCAL_KEY, JSON.stringify({
+        inventory: state.inventory, meals: state.meals, settings: state.settings,
+        dirty: cloud.dirty, savedAt: Date.now()
+      }));
+    } catch (e) { /* 용량 초과 등은 무시 */ }
+  }
+  function loadLocal() {
+    var raw = lsGet(LOCAL_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+  }
+  function hydrateLocal(l) {
+    if (!l) return;
+    if (l.inventory) state.inventory = normalizeInventory(l.inventory);
+    if (l.meals) state.meals = normalizeMeals(l.meals);
+    if (l.settings) state.settings = normalizeSettings(l.settings);
+    if (l.dirty && typeof l.dirty === 'object') {
+      cloud.dirty.inventory = !!l.dirty.inventory;
+      cloud.dirty.meals = !!l.dirty.meals;
+      cloud.dirty.settings = !!l.dirty.settings;
+    }
+  }
+
+  /* ============ 기기 / 세션 ============ */
+  function loadDevice() {
+    try {
+      var j = JSON.parse(lsGet(DEVICE_KEY) || 'null');
+      if (j && j.owner && j.repo && j.token) return { owner: j.owner, repo: j.repo, token: j.token, branch: j.branch || 'main', at: j.at || 0 };
+    } catch (e) { /* 무시 */ }
+    return null;
+  }
+  function saveDevice(c) { if (c) lsSet(DEVICE_KEY, JSON.stringify(c)); else lsDel(DEVICE_KEY); }
+  function loadSession() {
+    var raw = lsGet(SESSION_KEY), store = 'local';
+    if (!raw) { raw = ssGet(SESSION_KEY); store = 'session'; }
+    if (!raw) return null;
+    var j = null;
+    try { j = JSON.parse(raw); } catch (e) { j = null; }
+    if (!j || !j.id) return null;
+    var exp = Number(j.expiresAt) || 0;
+    if (store === 'local' && (!exp || exp <= Date.now())) { lsDel(SESSION_KEY); return null; }
+    return { id: String(j.id), name: String(j.name || j.id), role: ROLES[j.role] ? j.role : 'viewer', store: store, expiresAt: exp };
+  }
+  function findUser(id) {
+    var users = (cloud.users && cloud.users.users) || [];
+    var key = String(id || '').toLowerCase();
+    for (var i = 0; i < users.length; i++) if (String(users[i].id).toLowerCase() === key) return users[i];
+    return null;
+  }
+
+  /* ============ GitHub API ============ */
+  function ghHeaders(token) {
+    return {
+      'Authorization': 'Bearer ' + (token || (cloud.conn && cloud.conn.token) || ''),
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+  }
+  function ghBase() { return API_BASE + '/repos/' + encodeURIComponent(cloud.conn.owner) + '/' + encodeURIComponent(cloud.conn.repo); }
+  function b64encodeUtf8(str) {
+    var bytes = new TextEncoder().encode(String(str));
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return window.btoa(bin);
+  }
+  function b64decodeUtf8(b64) {
+    var bin = window.atob(String(b64 || '').replace(/\s/g, ''));
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (window.TextDecoder) return new TextDecoder('utf-8').decode(bytes);
+    return decodeURIComponent(escape(bin));
+  }
+  function loadShaCache() { try { return JSON.parse(lsGet(SHA_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function rememberSha(p, sha) { if (!p || !sha) return; cloud.sha[p] = sha; lsSet(SHA_KEY, JSON.stringify(cloud.sha || {})); }
+
+  async function ghGet(path) {
+    if (!cloud.conn) return { ok: false, status: 0, error: '연결 전' };
+    var branch = cloud.conn.branch || 'main';
+    var url = ghBase() + '/contents/' + path + '?ref=' + encodeURIComponent(branch) + '&_=' + Date.now();
+    try {
+      var res = await window.fetch(url, { headers: ghHeaders(), cache: 'no-store' });
+      if (res.status === 404) return { ok: true, missing: true };
+      if (res.status === 401) return { ok: false, status: 401, error: '토큰이 올바르지 않아요' };
+      if (res.status === 403) return { ok: false, status: 403, error: '권한이 없어요 (Contents: Read and write)' };
+      if (!res.ok) return { ok: false, status: res.status, error: 'HTTP ' + res.status };
+      var j = await res.json();
+      if (Object.prototype.toString.call(j) === '[object Array]') return { ok: true, list: j };
+      var text = j && j.content ? b64decodeUtf8(j.content) : '';
+      var data = null;
+      if (text) { try { data = JSON.parse(text); } catch (e) { data = null; } }
+      rememberSha(path, j && j.sha);
+      return { ok: true, data: data, sha: j && j.sha, raw: text };
+    } catch (e) {
+      return { ok: false, status: 0, error: '네트워크에 연결하지 못했어요' };
+    }
+  }
+
+  async function ghPut(path, obj, message) {
+    if (!cloud.conn) return { ok: false, status: 0, error: '연결 전' };
+    var payload = {
+      message: message || ('냉장고 대시보드: ' + path),
+      content: b64encodeUtf8(JSON.stringify(obj, null, 2)),
+      branch: cloud.conn.branch || 'main'
+    };
+    if (cloud.sha[path]) payload.sha = cloud.sha[path];
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        var res = await window.fetch(ghBase() + '/contents/' + path, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(payload) });
+        if (res.ok) {
+          var j = await res.json();
+          rememberSha(path, j && j.content && j.content.sha);
+          return { ok: true };
+        }
+        if (res.status === 409 || res.status === 422 || res.status === 404) {
+          var cur = await ghGet(path);
+          if (!cur.ok) return { ok: false, status: cur.status, error: cur.error };
+          if (cur.missing) delete payload.sha; else payload.sha = cur.sha;
+          continue;
+        }
+        if (res.status === 401) return { ok: false, status: 401, error: '토큰이 올바르지 않아요' };
+        if (res.status === 403) return { ok: false, status: 403, error: '쓰기 권한이 없어요' };
+        return { ok: false, status: res.status, error: 'HTTP ' + res.status };
+      } catch (e) {
+        return { ok: false, status: 0, error: '네트워크에 연결하지 못했어요' };
+      }
+    }
+    return { ok: false, status: 409, error: '다른 기기에서 먼저 저장했어요' };
+  }
+
+  /* ============ 동기화 ============ */
+  function setSync(st) { cloud.status = st; cloud.statusAt = Date.now(); renderSyncPill(); syncPillTail(); }
+  function syncText() {
+    var d = new Date(cloud.statusAt || Date.now());
+    return cloud.status === 'ok' ? ('마지막 저장 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())) :
+      cloud.status === 'error' ? '마지막 저장 실패 — 인터넷과 권한을 확인해 주세요' :
+      cloud.status === 'offline' ? '오프라인 · 이 기기에만 저장 중' :
+      cloud.saving ? '저장 중…' : '아직 저장 기록이 없어요';
+  }
+  function anyDirty() { return cloud.dirty.inventory || cloud.dirty.meals || cloud.dirty.settings; }
+  function renderSyncPill() {
+    var el = $('syncPill');
+    if (!el) return;
+    if (!cloud.conn) { el.className = 'sync-pill'; el.textContent = '☁️ 연결 전'; return; }
+    if (!cloud.me) { el.className = 'sync-pill'; el.textContent = '🔐 로그인 전'; return; }
+    if (anyDirty()) {
+      el.className = 'sync-pill sync';
+      el.textContent = cloud.saving ? '☁️ 저장 중…' : '☁️ 저장 대기';
+      return;
+    }
+    if (cloud.status === 'offline') { el.className = 'sync-pill off'; el.textContent = '📴 오프라인 · 기기에 저장'; return; }
+    if (cloud.status === 'error') { el.className = 'sync-pill err'; el.textContent = '⚠️ 동기화 오류'; return; }
+    if (cloud.status === 'syncing') { el.className = 'sync-pill sync'; el.textContent = '☁️ 저장 중…'; return; }
+    if (cloud.status === 'ok') {
+      el.className = 'sync-pill ok';
+      var d = new Date(cloud.statusAt || Date.now());
+      el.textContent = '☁️ 저장됨 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+      return;
+    }
+    el.className = 'sync-pill';
+    el.textContent = '☁️ 준비';
+  }
+  function syncPillTail() { /* settings의 저장 상태 줄도 같이 갱신 */
+    var si = $('syncInfo');
+    if (si) si.textContent = syncText();
+  }
+  function markDirty(kind) {
+    if (kind === 'inventory') cloud.dirty.inventory = true;
+    if (kind === 'meals') cloud.dirty.meals = true;
+    if (kind === 'settings') cloud.dirty.settings = true;
+    saveLocal();
+    renderSyncPill();
+    scheduleSync();
+  }
+  function scheduleSync() {
+    if (!cloud.conn || !cloud.me) return;
+    if (cloud.timer) window.clearTimeout(cloud.timer);
+    cloud.timer = window.setTimeout(function () { cloud.timer = 0; flushSync(); }, 900);
+  }
+  async function flushSync() {
+    if (!cloud.conn || !cloud.me || cloud.saving) return;
+    if (!anyDirty()) { return; }
+    cloud.saving = true;
+    setSync('syncing');
+    var jobs = [];
+    if (cloud.dirty.inventory) jobs.push({ kind: 'inventory', path: PATH_INV, obj: { version: 1, updatedAt: nowIso(), items: state.inventory.items } });
+    if (cloud.dirty.meals) jobs.push({ kind: 'meals', path: PATH_MEALS, obj: { version: 1, updatedAt: nowIso(), budget: state.meals.budget, weeks: state.meals.weeks, expenses: state.meals.expenses } });
+    if (cloud.dirty.settings) jobs.push({ kind: 'settings', path: PATH_SET, obj: { version: 1, updatedAt: nowIso(), recipes: state.settings.recipes, recipesAt: state.settings.recipesAt, prefs: state.settings.prefs } });
+    var failed = null;
+    for (var i = 0; i < jobs.length; i++) {
+      var job = jobs[i];
+      var r = await ghPut(job.path, job.obj, '냉장고 대시보드 저장: ' + job.kind);
+      if (r.ok) {
+        cloud.dirty[job.kind] = false;
+        state[job.kind].updatedAt = job.obj.updatedAt;
+      } else {
+        failed = r;
+        break;
+      }
+    }
+    cloud.saving = false;
+    saveLocal();
+    if (failed) {
+      setSync(navigator.onLine === false ? 'offline' : 'error');
+      if (failed.status === 401 || failed.status === 403) toast('저장 권한이 없어요. 아이 대시보드에서 기기를 다시 연결해 주세요.', true);
+    } else {
+      setSync(navigator.onLine === false ? 'offline' : 'ok');
+    }
+    if (anyDirty()) scheduleSync();
+    syncPillTail();
+  }
+
+  /* ============ 권한 / 사용자 ============ */
+  function canEdit() {
+    if (!cloud.me) return false;
+    var r = ROLES[cloud.me.role];
+    return !!(r && r.edit);
+  }
+  function roleLabel(role) { return (ROLES[role] && ROLES[role].label) || '보기 전용'; }
+  function applyUserUi() {
+    var me = cloud.me;
+    var chip = $('userChip');
+    if (chip) chip.hidden = !me;
+    if (me) {
+      var av = $('ucAv'); if (av) av.textContent = String(me.name || me.id).slice(0, 1) || '·';
+      var nm = $('ucName'); if (nm) nm.textContent = me.name || me.id;
+      var rl = $('ucRole'); if (rl) rl.textContent = roleLabel(me.role) + ' · ' + me.id;
+    }
+    var ro = $('roPill'); if (ro) ro.hidden = canEdit();
+    ui.readOnly = !canEdit();
+  }
+
+  /* ============ 주 / 날짜 ============ */
+  function mondayOf(d) {
+    var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var day = x.getDay(); // 0=일
+    var diff = (day === 0 ? -6 : 1 - day);
+    x.setDate(x.getDate() + diff);
+    return x;
+  }
+  function ymd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function isoWeekKey(d) {
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var day = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - day);
+    var y = t.getUTCFullYear();
+    var w = Math.ceil((((t - Date.UTC(y, 0, 1)) / 86400000) + 1) / 7);
+    return y + '-W' + pad2(w);
+  }
+  function weekLabel(start) {
+    var mon = parseYmd(start);
+    if (!mon) return '';
+    var weekOfMonth = Math.ceil(mon.getDate() / 7);
+    var fri = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 4);
+    return (mon.getMonth() + 1) + '월 ' + weekOfMonth + '주차';
+  }
+  function weekRange(start) {
+    var mon = parseYmd(start);
+    if (!mon) return '';
+    var fri = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 4);
+    return (mon.getMonth() + 1) + '/' + mon.getDate() + '(' + DAYS[0].n + ') ~ ' + (fri.getMonth() + 1) + '/' + fri.getDate() + '(' + DAYS[4].n + ')';
+  }
+  function dayDate(start, i) {
+    var mon = parseYmd(start);
+    if (!mon) return null;
+    return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+  }
+
+  /* ============ 식재료 계산 ============ */
+  function inStock(items) { return items.filter(function (i) { return i.status === 'in' && num(i.qty) > 0; }); }
+  function needsShopping() {
+    return state.inventory.items.filter(function (it) {
+      return it.staple && (it.status !== 'in' || num(it.qty) < (num(it.minQty) || 1));
+    });
+  }
+  function findItem(id) {
+    for (var i = 0; i < state.inventory.items.length; i++) if (state.inventory.items[i].id === id) return state.inventory.items[i];
+    return null;
+  }
+  /* 같은 이름의 '소진된' 항목이 있으면 새로 만들지 않고 재입고로 합쳐요 (장보기 알림이 바로 풀리도록) */
+  function upsertItem(data) {
+    var n = norm(data.name);
+    var hit = null;
+    for (var i = 0; i < state.inventory.items.length; i++) {
+      var it = state.inventory.items[i];
+      if (it.status === 'out' && norm(it.name) === n) { hit = it; break; }
+    }
+    if (hit) {
+      hit.qty = Math.max(0, num(hit.qty)) + Math.max(0, num(data.qty));
+      hit.status = hit.qty > 0 ? 'in' : 'out';
+      if (isYmd(data.boughtAt)) hit.boughtAt = data.boughtAt;
+      if (num(data.price) > 0) hit.price = Math.round(num(data.price));
+      if (data.unit) hit.unit = data.unit;
+      if (data.staple) hit.staple = true;
+      hit.updatedAt = Date.now();
+      return hit;
+    }
+    var added = makeItem(data);
+    state.inventory.items.push(added);
+    return added;
+  }
+  function monthSpent() {
+    var m = todayStr().slice(0, 7), inv = 0, exp = 0, i;
+    for (i = 0; i < state.inventory.items.length; i++) {
+      var it = state.inventory.items[i];
+      if (it.price > 0 && String(it.boughtAt).slice(0, 7) === m) inv += it.price;
+    }
+    for (i = 0; i < state.meals.expenses.length; i++) {
+      var e = state.meals.expenses[i];
+      if (String(e.date).slice(0, 7) === m) exp += num(e.amount);
+    }
+    return { inv: inv, exp: exp, total: inv + exp };
+  }
+  function storageCounts() {
+    var c = { frozen: 0, fridge: 0, room: 0, sauce: 0 };
+    for (var i = 0; i < state.inventory.items.length; i++) {
+      var it = state.inventory.items[i];
+      if (it.status === 'in' && num(it.qty) > 0) c[it.storage] = (c[it.storage] || 0) + 1;
+    }
+    return c;
+  }
+
+  /* ============ 렌더 ============ */
+  function renderAll() {
+    renderHeader();
+    renderBudget();
+    renderShopping();
+    renderTools();
+    renderInventory();
+    renderRecipes();
+    renderMeals();
+    renderSyncPill();
+  }
+
+  function renderHeader() {
+    var tl = $('todayLine'); if (tl) tl.textContent = dateLine();
+    var cnt = inStock(state.inventory.items).length;
+    var shop = needsShopping().length;
+    var il = $('invLine');
+    if (il) il.textContent = '재고 ' + cnt + '개' + (shop ? ' · 장보기 ' + shop + '개' : '');
+  }
+
+  function renderBudget() {
+    var card = $('budgetCard'); if (!card) return;
+    var b = Math.max(0, num(state.meals.budget) || BUDGET_DEFAULT);
+    var s = monthSpent();
+    var pct = b > 0 ? Math.min(100, Math.round(s.total / b * 100)) : 0;
+    var over = s.total > b;
+    var remain = b - s.total;
+    var html = '' +
+      '<div class="bud-head">' +
+        '<div class="bud-title">💰 이번 달 식비 <span class="bud-sub">' + (new Date().getMonth() + 1) + '월</span></div>' +
+        '<div class="bud-fig"><b class="' + (over ? 'over' : '') + '">' + fmtWon(s.total) + '</b>원 <span>/ ' + fmtWon(b) + '원</span></div>' +
+      '</div>' +
+      '<div class="bud-bar"><div class="bud-fill' + (over ? ' over' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="bud-foot">' +
+        '<span>재료 구매 ' + fmtWon(s.inv) + '원 · 직접 기록 ' + fmtWon(s.exp) + '원</span>' +
+        '<span>' + (over ? '목표보다 ' + fmtWon(-remain) + '원 초과' : '남은 ' + fmtWon(remain) + '원') + '</span>' +
+        '<div class="bud-btns">' +
+          (ui.readOnly ? '' : '<button class="btn sm" type="button" data-act="expense-open">+ 지출 기록</button>') +
+          '<button class="btn sm sub" type="button" data-act="settings-open">목표 바꾸기</button>' +
+        '</div>' +
+      '</div>';
+    card.innerHTML = html;
+  }
+
+  function renderShopping() {
+    var sec = $('shoppingSec'); if (!sec) return;
+    var list = needsShopping();
+    if (!list.length) { sec.hidden = true; sec.innerHTML = ''; return; }
+    sec.hidden = false;
+    list.sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
+    var rows = '';
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
+      var why = it.status !== 'in' ? '0' + it.unit + ' · 다 떨어졌어요' : fmtQty(it.qty) + it.unit + ' 남음 · 최소 ' + fmtQty(it.minQty) + it.unit;
+      rows += '<div class="shop-row" data-id="' + esc(it.id) + '">' +
+        '<span class="st-badge ' + ST_CLS[it.storage] + '">' + ST_LABEL[it.storage] + '</span>' +
+        '<div class="shop-main"><b>' + esc(it.name) + '</b><span id="why-' + esc(it.id) + '">' + esc(why) + '</span></div>' +
+        (ui.readOnly ? '' : '<button class="btn sm" type="button" data-act="item-restock" data-id="' + esc(it.id) + '">🛒 장보기 완료</button>') +
+        '</div>';
+    }
+    sec.innerHTML = '<div class="card-head"><h2>🛒 장보기 필요 <span class="count">' + list.length + '</span></h2>' +
+      '<span class="head-note">단골 재료가 떨어졌어요</span></div>' +
+      '<div class="shop-list' + (ui.shopOpen ? ' open' : '') + '">' + rows + '</div>' +
+      (list.length > 9 ? '<button class="shop-more" type="button" data-act="shop-toggle">' + (ui.shopOpen ? '접기' : (list.length - 9) + '개 더 보기') + '</button>' : '');
+  }
+
+  function renderTools() {
+    var counts = storageCounts();
+    var chips = '';
+    for (var i = 0; i < STORAGES.length; i++) {
+      var st = STORAGES[i];
+      chips += '<button class="chip' + (ui.storages[st.key] ? ' on' : '') + '" type="button" data-act="st-toggle" data-st="' + st.key + '" aria-pressed="' + (ui.storages[st.key] ? 'true' : 'false') + '">' +
+        st.emoji + ' ' + st.label + ' <b>' + (counts[st.key] || 0) + '</b></button>';
+    }
+    var chipsEl = $('storageChips'); if (chipsEl) chipsEl.innerHTML = chips;
+
+    var seg = '';
+    var opts = [['in', '보유중'], ['out', '소진됨'], ['all', '전체']];
+    for (var j = 0; j < opts.length; j++) {
+      seg += '<button type="button" class="' + (ui.status === opts[j][0] ? 'on' : '') + '" data-act="status-set" data-st="' + opts[j][0] + '" aria-pressed="' + (ui.status === opts[j][0] ? 'true' : 'false') + '">' + opts[j][1] + '</button>';
+    }
+    var segEl = $('statusSeg'); if (segEl) segEl.innerHTML = seg;
+
+    var sel = $('sortSel'); if (sel) sel.value = ui.sort;
+    var si = $('searchInput');
+    if (si && document.activeElement !== si) si.value = ui.search;
+    var tb = $('toolBtns');
+    if (tb) tb.innerHTML = ui.readOnly ? '' :
+      '<button class="btn sm sub" type="button" data-act="receipt-open">📷 영수증</button>' +
+      '<button class="btn sm" type="button" data-act="item-add">+ 식재료</button>';
+  }
+
+  function sortedItems(list) {
+    var arr = list.slice();
+    if (ui.sort === 'old') {
+      arr.sort(function (a, b) { return String(a.boughtAt || '9999-12-31').localeCompare(String(b.boughtAt || '9999-12-31')) || (a.createdAt - b.createdAt); });
+    } else if (ui.sort === 'name') {
+      arr.sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
+    } else if (ui.sort === 'qty') {
+      arr.sort(function (a, b) { return num(a.qty) - num(b.qty) || a.name.localeCompare(b.name, 'ko'); });
+    } else {
+      arr.sort(function (a, b) { return String(b.boughtAt || '').localeCompare(String(a.boughtAt || '')) || (b.createdAt - a.createdAt); });
+    }
+    return arr;
+  }
+
+  function filteredItems() {
+    var q = norm(ui.search);
+    var list = state.inventory.items.filter(function (it) {
+      if (!ui.storages[it.storage]) return false;
+      if (ui.status === 'in' && it.status !== 'in') return false;
+      if (ui.status === 'out' && it.status !== 'out') return false;
+      if (q && norm(it.name).indexOf(q) < 0) return false;
+      return true;
+    });
+    return sortedItems(list);
+  }
+
+  function renderInventory() {
+    var list = filteredItems();
+    var note = $('invNote');
+    if (note) note.textContent = list.length + '개 표시 · ' + (ui.sort === 'new' ? '최신순' : ui.sort === 'old' ? '오래된순' : ui.sort === 'name' ? '이름순' : '수량 적은 순');
+    var box = $('invList'); if (!box) return;
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">조건에 맞는 식재료가 없어요.<br><button class="link-btn" type="button" data-act="filter-reset">필터 초기화</button></div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
+      var meta = [];
+      meta.push(it.boughtAt ? (it.boughtAt.slice(5).replace('-', '/') + ' (' + daysAgo(it.boughtAt) + ')') : '구매일 없음');
+      if (it.price > 0) meta.push(fmtWon(it.price) + '원');
+      if (it.staple) meta.push('최소 ' + fmtQty(it.minQty) + it.unit);
+      if (it.note) meta.push(it.note);
+      var qtyHtml;
+      if (ui.readOnly) {
+        qtyHtml = '<span class="qv" style="padding:0 8px">' + fmtQty(it.qty) + esc(it.unit) + '</span>';
+      } else {
+        qtyHtml = '<button class="qbtn" type="button" data-act="qty-down" data-id="' + esc(it.id) + '" aria-label="수량 줄이기">−</button>' +
+          '<span class="qv">' + fmtQty(it.qty) + esc(it.unit) + '</span>' +
+          '<button class="qbtn" type="button" data-act="qty-up" data-id="' + esc(it.id) + '" aria-label="수량 늘리기">+</button>';
+      }
+      html += '<div class="item' + (it.status === 'out' ? ' out' : '') + '" data-id="' + esc(it.id) + '">' +
+        '<span class="st-badge ' + ST_CLS[it.storage] + '">' + ST_LABEL[it.storage] + '</span>' +
+        '<div class="it-main">' +
+          '<div class="it-name"><b>' + esc(it.name) + '</b>' + (it.staple ? '<span class="star" title="단골 재료">★</span>' : '') + (it.status === 'out' ? '<span class="st-badge st-sauce">소진됨</span>' : '') + '</div>' +
+          '<div class="it-meta">' + esc(meta.join(' · ')) + '</div>' +
+        '</div>' +
+        '<div class="it-qty">' + qtyHtml + '</div>' +
+        (ui.readOnly ? '' :
+        '<div class="it-acts">' +
+          '<button class="btn xs use-btn" type="button" data-act="' + (it.status === 'in' ? 'item-out' : 'item-restock') + '" data-id="' + esc(it.id) + '">' + (it.status === 'in' ? '소진' : '되살리기') + '</button>' +
+          '<button class="ic-btn" type="button" data-act="item-edit" data-id="' + esc(it.id) + '" aria-label="수정">✏️</button>' +
+          '<button class="ic-btn" type="button" data-act="item-del" data-id="' + esc(it.id) + '" aria-label="삭제">🗑️</button>' +
+          '<button class="ic-btn star-btn' + (it.staple ? ' on' : '') + '" type="button" data-act="item-staple" data-id="' + esc(it.id) + '" aria-label="단골 재료로 표시" title="단골 재료">★</button>' +
+        '</div>') +
+        '</div>';
+    }
+    box.innerHTML = html;
+  }
+
+  /* ---------- 레시피 ---------- */
+  function scoreRecipes() {
+    var stock = inStock(state.inventory.items).map(function (it) { return norm(it.name); }).filter(Boolean);
+    var out = [];
+    function has(ing) {
+      var n = norm(ing);
+      if (!n) return false;
+      for (var i = 0; i < stock.length; i++) {
+        var s = stock[i];
+        if (s === n) return true;
+        if (s.length >= 2 && n.indexOf(s) >= 0) return true;
+        if (n.length >= 2 && s.indexOf(n) >= 0) return true;
+      }
+      return false;
+    }
+    for (var i = 0; i < RECIPES.length; i++) {
+      var r = RECIPES[i], matched = 0, missing = [];
+      for (var j = 0; j < r.ing.length; j++) {
+        if (has(r.ing[j])) matched++;
+        else missing.push(r.ing[j]);
+      }
+      out.push({ r: r, matched: matched, missing: missing, pct: Math.round(matched / r.ing.length * 100) });
+    }
+    out.sort(function (a, b) { return b.pct - a.pct || a.missing.length - b.missing.length || a.r.t.localeCompare(b.r.t, 'ko'); });
+    return out;
+  }
+
+  function renderRecipes() {
+    var sec = $('recipeSec'); if (!sec) return;
+    var scored = scoreRecipes();
+    var shown = ui.recipeAll ? scored : scored.slice(0, 6);
+    var cards = '';
+    for (var i = 0; i < shown.length; i++) {
+      var sc = shown[i], r = sc.r;
+      var ing = '';
+      for (var j = 0; j < r.ing.length; j++) {
+        var miss = sc.missing.indexOf(r.ing[j]) >= 0;
+        ing += '<span class="' + (miss ? 'miss' : '') + '">' + esc(r.ing[j]) + '</span>';
+      }
+      cards += '<div class="rc">' +
+        '<div class="rc-emoji">' + r.e + '</div>' +
+        '<div class="rc-body">' +
+          '<div class="rc-title"><b>' + esc(r.t) + '</b><span class="pct' + (sc.pct < 60 ? ' low' : '') + '">' + sc.pct + '%</span></div>' +
+          '<p class="rc-desc">' + esc(r.d) + (sc.missing.length ? ' · 없는 재료 ' + sc.missing.length + '개' : ' · 지금 바로 가능!') + '</p>' +
+          '<div class="rc-ing">' + ing + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+    var more = scored.length > 6 ? '<div class="more-row"><button class="btn sm sub" type="button" data-act="recipe-toggle">' + (ui.recipeAll ? '접기' : '레시피 ' + scored.length + '개 모두 보기') + '</button></div>' : '';
+
+    var hasKey = !!getKey();
+    var aiList = '';
+    var recipes = state.settings.recipes || [];
+    if (ui.aiBusy) {
+      aiList = '<div class="spin"><div class="ring"></div><p>지금 있는 재료로 AI가 식단을 짜는 중…</p></div>';
+    } else if (recipes.length) {
+      aiList = '<div class="ai-cards">';
+      for (var k = 0; k < recipes.length; k++) {
+        var ar = recipes[k];
+        var chips = '';
+        for (var a = 0; a < ar.ingredients.length; a++) {
+          var isMiss = ar.missing.indexOf(ar.ingredients[a]) >= 0;
+          chips += '<span class="' + (isMiss ? 'miss' : '') + '">' + esc(ar.ingredients[a]) + '</span>';
+        }
+        var steps = '';
+        for (var s = 0; s < ar.steps.length; s++) steps += '<li>' + esc(ar.steps[s]) + '</li>';
+        aiList += '<div class="ai-card">' +
+          '<div class="ai-card-head"><b>' + esc(ar.title) + '</b><span>' + (ar.minutes ? ar.minutes + '분' : '') + '</span></div>' +
+          (ar.reason ? '<p class="ai-why">' + esc(ar.reason) + '</p>' : '') +
+          (chips ? '<div class="rc-ing">' + chips + '</div>' : '') +
+          (steps ? '<ol class="ai-steps">' + steps + '</ol>' : '') +
+        '</div>';
+      }
+      aiList += '</div>';
+    } else {
+      aiList = '<div class="ai-empty">' + (hasKey
+        ? '✨ 버튼을 누르면 지금 냉장고에 있는 재료로 AI가 이번 주 식단을 짜드려요.'
+        : 'Gemini API 키를 ⚙️ 설정에 넣으면 AI가 식단을 짜드려요.') + '</div>';
+    }
+    var at = state.settings.recipesAt;
+    var atTxt = '';
+    if (at) {
+      var d = new Date(at);
+      if (!isNaN(d.getTime())) atTxt = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ' 추천';
+    }
+    var aiBtn = '';
+    if (!ui.readOnly) {
+      aiBtn = '<button class="btn sm" type="button" data-act="ai-refresh"' + (ui.aiBusy ? ' disabled' : '') + '>✨ AI 추천 식단 업데이트</button>';
+    }
+    sec.innerHTML = '<div class="card-head"><h2>🍳 만들 수 있는 레시피</h2><span class="head-note">재고 기준 자동 매칭</span></div>' +
+      '<div class="recipe-grid">' + cards + '</div>' + more +
+      '<div class="ai-box">' +
+        '<div class="ai-head"><b>✨ AI 추천 식단</b><span class="ai-at">' + esc(atTxt) + '</span>' + aiBtn + '</div>' +
+        aiList +
+        '<p class="note" style="margin-top:9px">Gemini 키는 이 브라우저(localStorage)에만 저장되고 GitHub에는 올라가지 않아요.</p>' +
+      '</div>';
+  }
+
+  /* ---------- 주간 식단 ---------- */
+  function openMealModal(dayKey) {
+    if (!dayKey || ui.readOnly) return;
+    ui.mealDay = dayKey;
+    var start = ui.weekStart || ymd(mondayOf(new Date()));
+    var w = weekEntry(start, false);
+    var idx = 0;
+    for (var i = 0; i < DAYS.length; i++) if (DAYS[i].k === dayKey) idx = i;
+    var dd = dayDate(start, idx);
+    var d = (w && w.days[dayKey]) || { b: '', l: '', d: '' };
+    $('mealTitle').textContent = '🍽 ' + DAYS[idx].n + '요일 식단';
+    $('mealBody').innerHTML = '<div class="form">' +
+      '<p class="note">' + esc(weekLabel(start) + (dd ? ' · ' + (dd.getMonth() + 1) + '/' + dd.getDate() : '')) + '</p>' +
+      '<label>아침<input id="msB" maxlength="60" placeholder="예: 토스트 + 우유" value="' + esc(d.b) + '"></label>' +
+      '<label>점심<input id="msL" maxlength="60" placeholder="예: 김치볶음밥" value="' + esc(d.l) + '"></label>' +
+      '<label>저녁<input id="msD" maxlength="60" placeholder="예: 된장찌개 + 달걀말이" value="' + esc(d.d) + '"></label>' +
+      '<button class="btn wide" type="button" data-act="meal-save">저장</button>' +
+      '<p class="note">비우고 저장하면 그 끼니 기록이 지워져요.</p>' +
+      '</div>';
+    showModal('mealModal');
+    try { $('msB').focus(); } catch (e) { /* 무시 */ }
+  }
+
+  function saveMeal() {
+    var day = ui.mealDay;
+    if (!day) return;
+    var start = ui.weekStart || ymd(mondayOf(new Date()));
+    var w = weekEntry(start, true);
+    if (!w) return;
+    w.days[day] = {
+      b: fieldVal('msB').trim().slice(0, 60),
+      l: fieldVal('msL').trim().slice(0, 60),
+      d: fieldVal('msD').trim().slice(0, 60)
+    };
+    markDirty('meals');
+    closeModal('mealModal');
+    renderAll();
+    toast('🍽 식단을 저장했어요');
+  }
+
+  function weekEntry(start, create) {
+    var key = isoWeekKey(parseYmd(start) || new Date());
+    var w = state.meals.weeks[key];
+    if (!w && create) {
+      w = { start: start, days: {} };
+      for (var i = 0; i < DAYS.length; i++) w.days[DAYS[i].k] = { b: '', l: '', d: '' };
+      state.meals.weeks[key] = w;
+    }
+    if (w && !w.start) w.start = start;
+    if (w) {
+      for (var j = 0; j < DAYS.length; j++) {
+        if (!w.days[DAYS[j].k]) w.days[DAYS[j].k] = { b: '', l: '', d: '' };
+      }
+    }
+    return w;
+  }
+
+  function renderMeals() {
+    var sec = $('mealSec'); if (!sec) return;
+    if (!ui.weekStart) ui.weekStart = ymd(mondayOf(new Date()));
+    var start = ui.weekStart;
+    var today = todayStr();
+    var w = weekEntry(start, false);
+    var cells = '';
+    for (var i = 0; i < DAYS.length; i++) {
+      var dd = dayDate(start, i);
+      var ds = dd ? ymd(dd) : '';
+      var isToday = ds === today;
+      var slotHtml = '';
+      for (var s = 0; s < SLOTS.length; s++) {
+        var sl = SLOTS[s];
+        var txt = (w && w.days[DAYS[i].k]) ? w.days[DAYS[i].k][sl.k] : '';
+        var inner = '<b>' + sl.n + '</b><span class="' + (txt ? '' : 'empty') + '">' + (txt ? esc(txt) : '＋ 기록') + '</span>';
+        if (ui.readOnly) {
+          slotHtml += '<div class="mslot">' + inner + '</div>';
+        } else {
+          slotHtml += '<button class="mslot" type="button" data-act="meal-edit" data-day="' + DAYS[i].k + '">' + inner + '</button>';
+        }
+      }
+      cells += '<div class="meal-day' + (isToday ? ' today' : '') + '">' +
+        '<div class="md-head"><b>' + DAYS[i].n + '</b><span>' + (dd ? (dd.getMonth() + 1) + '/' + dd.getDate() : '') + '</span>' +
+        (isToday ? '<span class="today-chip">오늘</span>' : '') + '</div>' +
+        slotHtml +
+        '</div>';
+    }
+    sec.innerHTML = '<div class="card-head"><h2>🍽 주간 식단</h2>' +
+      '<div class="week-nav"><button type="button" data-act="week-prev" aria-label="지난 주">‹</button>' +
+      '<span>' + esc(weekLabel(start)) + '</span>' +
+      '<button type="button" data-act="week-next" aria-label="다음 주">›</button></div></div>' +
+      '<p class="week-range">' + esc(weekRange(start)) +
+      '<button class="link-btn" type="button" data-act="week-today">이번 주</button>' +
+      (ui.readOnly ? '<span class="st-badge" style="background:#f3ecff;color:#5b3fa8">보기 전용</span>' : '') + '</p>' +
+      '<div class="meal-grid' + (ui.readOnly ? ' meal-readonly' : '') + '">' + cells + '</div>';
+  }
+
+  /* ============ 모달 열기/닫기 ============ */
+  function showModal(id) {
+    var m = $(id);
+    if (!m) return;
+    m.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(id) {
+    var m = $(id);
+    if (m) m.hidden = true;
+    var any = document.querySelector('.sheet:not([hidden]), .hub:not([hidden])');
+    if (!any) document.body.style.overflow = '';
+  }
+
+  /* ---------- 식재료 폼 ---------- */
+  function openItemModal(id) {
+    ui.itemEdit = id || '';
+    var it = id ? findItem(id) : null;
+    $('itemTitle').textContent = it ? '식재료 수정' : '식재료 추가';
+    var stOpts = '';
+    for (var i = 0; i < STORAGES.length; i++) {
+      stOpts += '<option value="' + STORAGES[i].key + '"' + ((it ? it.storage : 'fridge') === STORAGES[i].key ? ' selected' : '') + '>' + STORAGES[i].emoji + ' ' + STORAGES[i].label + '</option>';
+    }
+    $('itemBody').innerHTML = '<div class="form">' +
+      '<label>이름<input id="itName" maxlength="40" placeholder="예: 두부" value="' + esc(it ? it.name : '') + '"></label>' +
+      '<div class="frow">' +
+        '<label>수량<input id="itQty" type="number" min="0" step="0.5" inputmode="decimal" value="' + esc(it ? fmtQty(it.qty) : '1') + '"></label>' +
+        '<label>단위<input id="itUnit" maxlength="6" value="' + esc(it ? it.unit : '개') + '"></label>' +
+      '</div>' +
+      '<div class="frow">' +
+        '<label>보관 구분<select id="itStorage">' + stOpts + '</select></label>' +
+        '<label>구매일<input id="itDate" type="date" value="' + esc(it && it.boughtAt ? it.boughtAt : todayStr()) + '"></label>' +
+      '</div>' +
+      '<label>가격 (선택, 원)<input id="itPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="가계부에 이어져요" value="' + esc(it && it.price ? it.price : '') + '"></label>' +
+      '<label class="chk"><input type="checkbox" id="itStaple"' + (it && it.staple ? ' checked' : '') + '> 자주 쓰는 필수 재료(단골)로 표시</label>' +
+      '<label>단골 최소 수량<input id="itMin" type="number" min="1" step="1" inputmode="numeric" value="' + esc(it ? it.minQty : '1') + '"></label>' +
+      '<label>메모 (선택)<input id="itNote" maxlength="60" placeholder="예: 유통기한 11/30" value="' + esc(it ? it.note : '') + '"></label>' +
+      '<p class="form-msg" id="itemMsg"></p>' +
+      '<button class="btn wide" type="button" data-act="item-save">저장</button>' +
+      '</div>';
+    showModal('itemModal');
+    try { $('itName').focus(); } catch (e) { /* 무시 */ }
+  }
+
+  function saveItem() {
+    var name = fieldVal('itName').trim();
+    var msg = $('itemMsg');
+    if (!name) { if (msg) msg.textContent = '이름을 넣어 주세요.'; return; }
+    var data = {
+      name: name,
+      qty: num(fieldVal('itQty')),
+      unit: fieldVal('itUnit').trim() || '개',
+      storage: normStorage(fieldVal('itStorage')),
+      boughtAt: fieldVal('itDate'),
+      price: num(fieldVal('itPrice')),
+      staple: !!($('itStaple') && $('itStaple').checked),
+      minQty: num(fieldVal('itMin')) || 1,
+      note: fieldVal('itNote')
+    };
+    var it = ui.itemEdit ? findItem(ui.itemEdit) : null;
+    if (it) {
+      it.name = data.name; it.qty = Math.max(0, data.qty); it.unit = data.unit; it.storage = data.storage;
+      it.boughtAt = isYmd(data.boughtAt) ? data.boughtAt : '';
+      it.price = Math.max(0, Math.round(data.price));
+      it.staple = data.staple; it.minQty = Math.max(1, data.minQty);
+      it.note = data.note; it.updatedAt = Date.now();
+      it.status = it.qty > 0 ? 'in' : 'out';
+    } else {
+      upsertItem(data);
+    }
+    markDirty('inventory');
+    closeModal('itemModal');
+    renderAll();
+    toast(it ? '✏️ ' + it.name + ' 수정했어요' : '🥕 ' + data.name + ' 추가했어요');
+  }
+
+  /* ---------- 영수증 ---------- */
+  function getKey() { return lsGet(KEY_KEY) || ''; }
+
+  function renderReceipt() {
+    var body = $('receiptBody'); if (!body) return;
+    var rec = ui.rec || { step: 'pick' };
+    if (rec.step === 'busy') {
+      body.innerHTML = '<div class="spin"><div class="ring"></div><p>영수증을 읽는 중…</p><p class="note">사진은 저장하지 않아요</p></div>';
+      return;
+    }
+    if (rec.step === 'error') {
+      body.innerHTML = '<div class="guide"><b>사진을 읽지 못했어요</b><p>' + esc(rec.error || '다시 시도해 주세요.') + '</p>' +
+        '<button class="btn" type="button" data-act="receipt-pick">다른 사진으로 다시</button></div>' +
+        '<p class="note" style="margin-top:10px">바로 등록하려면 <button class="link-btn" type="button" data-act="item-add">직접 등록</button>을 써 주세요.</p>' +
+        '<input type="file" id="receiptFile" accept="image/*" capture="environment" hidden>';
+      return;
+    }
+    if (rec.step === 'review') {
+      var rows = '';
+      var sel = 0;
+      for (var i = 0; i < rec.items.length; i++) {
+        var it = rec.items[i];
+        if (it.include) sel++;
+        var so = '';
+        for (var s = 0; s < STORAGES.length; s++) {
+          so += '<option value="' + STORAGES[s].key + '"' + (it.storage === STORAGES[s].key ? ' selected' : '') + '>' + STORAGES[s].label + '</option>';
+        }
+        rows += '<div class="rec-row' + (it.include ? '' : ' off') + '">' +
+          '<input type="checkbox" data-ri="' + i + '" aria-label="이 항목 포함"' + (it.include ? ' checked' : '') + '>' +
+          '<input data-ri="' + i + '" data-f="name" value="' + esc(it.name) + '" aria-label="이름">' +
+          '<input data-ri="' + i + '" data-f="qty" type="number" min="0" step="0.5" value="' + esc(fmtQty(it.qty)) + '" aria-label="수량">' +
+          '<input data-ri="' + i + '" data-f="unit" value="' + esc(it.unit) + '" aria-label="단위">' +
+          '<select data-ri="' + i + '" data-f="storage" aria-label="보관">' + so + '</select>' +
+          '<input data-ri="' + i + '" data-f="price" type="number" min="0" step="100" value="' + esc(it.price || '') + '" aria-label="가격">' +
+          '</div>';
+      }
+      body.innerHTML = '<div class="rec-head">' +
+          '<label>구매일 <input type="date" id="recDate" value="' + esc(rec.date) + '"></label>' +
+          '<span id="recCount">' + sel + '개 선택</span>' +
+        '</div>' +
+        (rec.items.length ? '<div class="rec-rows">' + rows + '</div>' : '<p class="note" style="color:#c6415a;margin-bottom:9px">재료를 찾지 못했어요. 직접 등록해 주세요.</p>') +
+        '<button class="btn wide" type="button" data-act="receipt-add">선택한 재료 목록에 추가</button>' +
+        '<div style="height:7px"></div>' +
+        '<button class="btn wide sub" type="button" data-act="receipt-pick">다른 사진으로 다시</button>' +
+        '<p class="note" style="margin-top:9px">인식 결과가 틀리면 고쳐 주세요. 사진은 저장하지 않고 인식에만 써요.</p>' +
+        '<input type="file" id="receiptFile" accept="image/*" capture="environment" hidden>';
+      return;
+    }
+    var key = getKey();
+    body.innerHTML = '<div class="rec-drop">📷<b>영수증 사진으로 한 번에 등록</b>' +
+      '<p>마트 영수증이나 장보기 목록 사진을 올리면<br>재료·수량·가격·보관 구분을 자동으로 읽어요.</p></div>' +
+      '<input type="file" id="receiptFile" accept="image/*" capture="environment" hidden>' +
+      (key ?
+        '<button class="btn wide" type="button" data-act="receipt-pick">사진 찍기 / 고르기</button>' :
+        '<div class="guide"><b>✨ 자동 인식을 쓰려면 Gemini API 키가 필요해요</b>' +
+        '<p>무료 키를 발급해 ⚙️ 설정에 넣으면 영수증이 자동으로 정리돼요. 키는 이 브라우저에만 저장되고 GitHub에는 올라가지 않아요.</p>' +
+        '<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey 에서 무료 키 발급</a>' +
+        '<div><button class="btn" type="button" data-act="settings-open">⚙️ 설정에서 키 넣기</button></div></div>') +
+      '<div style="height:7px"></div>' +
+      '<button class="btn wide sub" type="button" data-act="item-add">직접 등록하기</button>';
+  }
+
+  function openReceipt() {
+    ui.rec = { step: 'pick' };
+    renderReceipt();
+    showModal('receiptModal');
+  }
+
+  function shrinkImage(file, maxDim, quality) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+          var cv = document.createElement('canvas');
+          cv.width = cw; cv.height = ch;
+          var ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, cw, ch);
+          ctx.drawImage(img, 0, 0, cw, ch);
+          try { resolve(cv.toDataURL('image/jpeg', quality)); } catch (e) { reject(e); }
+        };
+        img.onerror = function () { reject(new Error('사진을 열지 못했어요.')); };
+        img.src = String(reader.result || '');
+      };
+      reader.onerror = function () { reject(new Error('사진을 읽지 못했어요.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function analyzeReceipt(file) {
+    ui.rec = { step: 'busy' };
+    renderReceipt();
+    try {
+      if (!getKey()) throw new Error('NO_KEY');
+      if (!/^image\//.test(file.type || '')) throw new Error('이미지 파일만 올릴 수 있어요.');
+      var dataUrl = await shrinkImage(file, 1400, 0.85);
+      var mime = (/^data:(.*?);/.exec(dataUrl) || [])[1] || 'image/jpeg';
+      var b64 = dataUrl.split(',')[1];
+      var out = await geminiJSON([
+        { text: PROMPT_RECEIPT },
+        { inline_data: { mime_type: mime, data: b64 } }
+      ], SCHEMA_RECEIPT);
+      var list = (out && out.items) || [];
+      var items = [];
+      for (var i = 0; i < list.length && i < 40; i++) {
+        var it = list[i] || {};
+        var name = String(it.name || '').trim();
+        if (!name) continue;
+        items.push({
+          include: true, name: name.slice(0, 40),
+          qty: Math.max(0, num(it.qty) || 1),
+          unit: String(it.unit || '개').slice(0, 6),
+          storage: normStorage(it.storage),
+          price: Math.max(0, Math.round(num(it.price)))
+        });
+      }
+      var date = isYmd(out && out.purchaseDate) ? out.purchaseDate : todayStr();
+      ui.rec = { step: 'review', items: items, date: date };
+      renderReceipt();
+    } catch (e) {
+      ui.rec = { step: 'error', error: msgForError(e) };
+      renderReceipt();
+    }
+  }
+
+  function addReviewed() {
+    var rec = ui.rec;
+    if (!rec || rec.step !== 'review') return;
+    var date = fieldVal('recDate');
+    var added = 0;
+    for (var i = 0; i < rec.items.length; i++) {
+      var it = rec.items[i];
+      if (!it.include) continue;
+      var name = String(it.name || '').trim();
+      if (!name) continue;
+      upsertItem({
+        name: name, qty: Math.max(0, num(it.qty)), unit: it.unit || '개', storage: it.storage,
+        boughtAt: isYmd(date) ? date : todayStr(), price: Math.max(0, Math.round(num(it.price)))
+      });
+      added++;
+    }
+    if (!added) { toast('추가할 항목을 골라 주세요.', true); return; }
+    markDirty('inventory');
+    closeModal('receiptModal');
+    renderAll();
+    toast('🧾 ' + added + '개 재료를 등록했어요');
+  }
+
+  /* ---------- Gemini ---------- */
+  function msgForError(e) {
+    var m = (e && e.message) ? e.message : String(e || '');
+    if (m === 'NO_KEY' || m === 'NO_KEY_SET') return '설정에서 Gemini API 키를 먼저 넣어 주세요.';
+    if (/API key not valid|API_KEY_INVALID|API key expired/i.test(m)) return 'API 키가 올바르지 않아요. ⚙️ 설정에서 다시 확인해 주세요.';
+    if (/quota|RESOURCE_EXHAUSTED|429/i.test(m)) return '무료 사용량을 다 썼어요. 잠시 후 다시 시도해 주세요.';
+    if (/네트워크|fetch|Failed to fetch|NetworkError/i.test(m)) return '인터넷에 연결하지 못했어요. 연결을 확인해 주세요.';
+    return m || '알 수 없는 오류가 생겼어요.';
+  }
+
+  function geminiExtractText(json) {
+    try {
+      var c = json.candidates && json.candidates[0];
+      var parts = (c && c.content && c.content.parts) || [];
+      var out = '';
+      for (var i = 0; i < parts.length; i++) if (parts[i] && parts[i].text) out += parts[i].text;
+      return out;
+    } catch (e) { return ''; }
+  }
+  function looseJson(text) {
+    var t = String(text || '').trim();
+    t = t.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    var a = t.indexOf('{'), b = t.lastIndexOf('}');
+    if (a >= 0 && b > a) t = t.slice(a, b + 1);
+    return JSON.parse(t);
+  }
+
+  async function geminiJSON(parts, schema) {
+    var key = getKey();
+    if (!key) throw new Error('NO_KEY');
+    var last = null;
+    for (var i = 0; i < GEMINI_MODELS.length; i++) {
+      var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODELS[i] + ':generateContent?key=' + encodeURIComponent(key);
+      var cfg = { temperature: 0.25, responseMimeType: 'application/json' };
+      if (schema) cfg.responseSchema = schema;
+      var body = { contents: [{ role: 'user', parts: parts }], generationConfig: cfg };
+      var res, json = null;
+      try {
+        res = await window.fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        try { json = await res.json(); } catch (e) { json = null; }
+      } catch (e) {
+        throw new Error('네트워크에 연결하지 못했어요.');
+      }
+      if (res.status === 404) { last = new Error('모델을 찾지 못했어요 (HTTP 404)'); continue; }
+      if (!res.ok) {
+        var em = (json && json.error && json.error.message) ? json.error.message : ('HTTP ' + res.status);
+        throw new Error(em);
+      }
+      var text = geminiExtractText(json);
+      if (!text) {
+        var reason = json && json.candidates && json.candidates[0] && json.candidates[0].finishReason;
+        throw new Error('응답이 비어 있어요' + (reason ? ' (' + reason + ')' : ''));
+      }
+      try { return looseJson(text); } catch (e) { throw new Error('응답을 이해하지 못했어요. 다시 시도해 주세요.'); }
+    }
+    throw (last || new Error('Gemini 모델을 찾지 못했어요.'));
+  }
+
+  async function refreshAI() {
+    if (ui.aiBusy) return;
+    if (ui.readOnly) { toast('보기 전용 계정이라 AI 추천을 바꿀 수 없어요.', true); return; }
+    if (!getKey()) {
+      ui.keyMsg = 'err:AI 추천을 쓰려면 Gemini API 키를 넣어 주세요.';
+      renderSettings();
+      showModal('settingsModal');
+      return;
+    }
+    ui.aiBusy = true;
+    renderRecipes();
+    try {
+      var stock = inStock(state.inventory.items).map(function (it) { return it.name; });
+      var shop = needsShopping().map(function (it) { return it.name; });
+      var prompt = '너는 한국 가정의 식단 도우미야. 아래 냉장고 재고로 이번 주 평일 저녁·아침에 만들 수 있는 한국 가정식 레시피를 4개 추천해줘.\n' +
+        '재고(보유중): ' + stock.join(', ') + '\n' +
+        '지금 없는 단골 재료: ' + (shop.length ? shop.join(', ') : '없음') + '\n' +
+        '조건: 1) 재고 재료를 최대한 쓰고, 없어도 사기 쉬운 재료만 missing에 적기 2) 조리 30분 이내 3) 아이도 먹을 수 있는 순한 맛 위주 4) 각 레시피에 title, reason(한 줄), minutes(숫자), ingredients(재료 배열), missing(지금 없는 재료 배열), steps(조리 순서 4단계 이내 배열)를 채우기.';
+      var out = await geminiJSON([{ text: prompt }], SCHEMA_RECIPES);
+      var list = (out && out.recipes) || [];
+      var clean = [];
+      for (var i = 0; i < list.length && i < 6; i++) {
+        var r = list[i] || {};
+        if (!r.title) continue;
+        clean.push({
+          title: String(r.title).slice(0, 60),
+          reason: String(r.reason || '').slice(0, 160),
+          minutes: Math.max(0, Math.round(num(r.minutes))),
+          ingredients: (r.ingredients || []).slice(0, 14).map(function (x) { return String(x).slice(0, 30); }),
+          missing: (r.missing || []).slice(0, 10).map(function (x) { return String(x).slice(0, 30); }),
+          steps: (r.steps || []).slice(0, 8).map(function (x) { return String(x).slice(0, 160); })
+        });
+      }
+      if (!clean.length) throw new Error('추천을 받지 못했어요. 다시 시도해 주세요.');
+      state.settings.recipes = clean;
+      state.settings.recipesAt = nowIso();
+      markDirty('settings');
+      toast('✨ AI 추천 식단을 업데이트했어요');
+    } catch (e) {
+      toast(msgForError(e), true);
+    } finally {
+      ui.aiBusy = false;
+      renderRecipes();
+    }
+  }
+
+  /* ---------- 설정 ---------- */
+  function renderSettings() {
+    var body = $('settingsBody'); if (!body) return;
+    var key = getKey();
+    var keyBadge = key ? '<span class="badge ok">저장됨 · 이 브라우저에만</span>' : '<span class="badge">없음</span>';
+    var keyMsg = ui.keyMsg ? '<p class="form-msg' + (ui.keyMsg.indexOf('ok:') === 0 ? ' ok' : '') + '">' + esc(ui.keyMsg.replace(/^(ok|err):/, '')) + '</p>' : '<p class="form-msg"></p>';
+    var d = new Date(cloud.statusAt || Date.now());
+    var syncTxt = syncText();
+    body.innerHTML = '' +
+      '<div class="set-sec">' +
+        '<h3>✨ Gemini API 키 ' + keyBadge + '</h3>' +
+        '<p class="set-info">영수증 자동 인식과 AI 식단 추천에 써요. 이 브라우저(localStorage)에만 저장되고 GitHub에는 절대 올라가지 않아요.</p>' +
+        '<div class="row"><input id="keyInput" type="password" placeholder="AIza… (새 키로 바꿀 때만 입력)" autocomplete="off" spellcheck="false">' +
+        '<button class="btn sm" type="button" data-act="key-save">키 저장</button>' +
+        '<button class="btn sm sub" type="button" data-act="key-check">연결 확인</button>' +
+        (key ? '<button class="btn sm ghost" type="button" data-act="key-clear">삭제</button>' : '') + '</div>' +
+        keyMsg +
+        '<p class="set-info" style="margin-top:6px">무료 키 발급: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>' +
+      '</div>' +
+      '<div class="set-sec">' +
+        '<h3>💰 월 식비 목표</h3>' +
+        '<div class="row"><input id="budgetInput" type="number" min="0" step="10000" inputmode="numeric" value="' + esc(state.meals.budget || BUDGET_DEFAULT) + '">' +
+        (ui.readOnly ? '<span class="badge">보기 전용</span>' : '<button class="btn sm" type="button" data-act="budget-save">저장</button>') + '</div>' +
+        '<p class="set-info" style="margin-top:6px">이번 달 재료 구매 가격과 직접 기록한 지출을 합쳐서 보여줘요.</p>' +
+      '</div>' +
+      '<div class="set-sec">' +
+        '<h3>☁️ 저장</h3>' +
+        '<p class="set-info">저장 위치: <b>' + esc((cloud.conn && (cloud.conn.owner + '/' + cloud.conn.repo)) || '-') + '</b><br>' +
+        '<code>fridge/inventory.json</code> · <code>fridge/meals.json</code> · <code>fridge/settings.json</code></p>' +
+        '<p class="set-info" id="syncInfo">' + esc(syncTxt) + '</p>' +
+        '<div class="row"><button class="btn sm sub" type="button" data-act="sync-now">지금 동기화</button>' +
+        '<button class="btn sm ghost" type="button" data-act="reload-data">GitHub에서 다시 불러오기</button></div>' +
+      '</div>' +
+      '<div class="set-sec">' +
+        '<h3>👤 내 계정</h3>' +
+        '<p class="set-info">' + esc(cloud.me ? ((cloud.me.name || cloud.me.id) + ' · ' + roleLabel(cloud.me.role) + ' (' + cloud.me.id + ')') : '-') + '</p>' +
+        '<p class="set-info">영수증 사진은 저장하지 않아요. 인식에만 쓰고 바로 버려요.</p>' +
+      '</div>';
+  }
+
+  async function checkKey() {
+    ui.keyMsg = '';
+    ui.keyMsg = 'err:확인하는 중…';
+    renderSettings();
+    try {
+      await geminiJSON([{ text: '연결 확인이야. JSON {"ok":true} 만 답해줘.' }], { type: 'OBJECT', properties: { ok: { type: 'BOOLEAN' } } });
+      ui.keyMsg = 'ok:연결됐어요. 영수증 인식과 AI 식단을 쓸 수 있어요.';
+    } catch (e) {
+      ui.keyMsg = 'err:' + msgForError(e);
+    }
+    renderSettings();
+  }
+
+  /* ---------- 지출 ---------- */
+  function renderExpense() {
+    var body = $('expenseBody'); if (!body) return;
+    var m = todayStr().slice(0, 7), rows = '', i;
+    for (i = 0; i < state.meals.expenses.length; i++) {
+      var e = state.meals.expenses[i];
+      if (String(e.date).slice(0, 7) !== m) continue;
+      rows += '<div class="shop-row"><div class="shop-main"><b>' + fmtWon(e.amount) + '원</b><span style="color:#8a93a8">' + esc(e.date.slice(5).replace('-', '/')) + (e.note ? ' · ' + esc(e.note) : '') + '</span></div>' +
+        '<button class="ic-btn" type="button" data-act="expense-del" data-id="' + esc(e.id) + '" aria-label="삭제">🗑️</button></div>';
+    }
+    body.innerHTML = '<div class="form">' +
+      '<label>날짜<input id="exDate" type="date" value="' + todayStr() + '"></label>' +
+      '<label>금액 (원)<input id="exAmount" type="number" min="0" step="100" inputmode="numeric" placeholder="예: 32000"></label>' +
+      '<label>메모<input id="exNote" maxlength="40" placeholder="예: 이마트 장보기"></label>' +
+      '<button class="btn wide" type="button" data-act="expense-save">지출 기록하기</button>' +
+      '</div>' +
+      '<h3 style="margin:16px 0 8px;font-size:14px">이번 달 직접 기록</h3>' +
+      (rows || '<p class="note">직접 기록한 지출이 없어요. 재료 구매 가격은 자동으로 들어가요.</p>') +
+      '<p class="note" style="margin-top:10px">재료 구매 합계는 식재료의 구매일·가격에서 자동 계산돼요. 여기에는 영수증에 없던 지출만 적어 주세요.</p>';
+  }
+
+  /* ---------- 허브 ---------- */
+  function hubConfig() {
+    var c = null;
+    try { c = JSON.parse(lsGet(HUB_KEY) || '{}'); } catch (e) { c = null; }
+    if (!c || typeof c !== 'object') c = {};
+    return c;
+  }
+  function renderHub() {
+    var grid = $('hubGrid'); if (!grid) return;
+    var c = hubConfig();
+    var kids = (typeof c.kids === 'string' && c.kids.trim()) ? c.kids.trim() : '../kids-dashboard/';
+    grid.innerHTML = '' +
+      '<a class="hub-tile kids" href="' + esc(kids) + '">' +
+        '<span class="ht-emoji">👦</span>' +
+        '<span class="ht-body"><span class="ht-title">아이 대시보드</span><span class="ht-desc">루틴 체크 · 칭찬 스티커 · 학원 시간표</span></span>' +
+        '<span class="ht-go">열기 →</span></a>' +
+      '<div class="hub-tile fridge"><span class="ht-badge">지금 사용 중</span>' +
+        '<span class="ht-emoji">🧊</span>' +
+        '<span class="ht-body"><span class="ht-title">냉장고 파먹기</span><span class="ht-desc">식재료 재고 · 장보기 알림 · 주간 식단</span></span>' +
+        '<span class="ht-go">현재 화면</span></div>' +
+      '<div class="hub-tile ledger">' +
+        '<span class="ht-emoji">📒</span>' +
+        '<span class="ht-body"><span class="ht-title">가계부</span><span class="ht-desc">식비·생활비 기록 · 다음에 만들 예정이에요</span></span>' +
+        '<span class="ht-go">준비 중 🚧</span></div>';
+  }
+  function openHub() {
+    renderHub();
+    var sub = $('hubSub');
+    if (sub) sub.textContent = (cloud.me ? (cloud.me.name || cloud.me.id) + '님, ' : '') + '오늘은 어디로 갈까요?';
+    showModal('hubScreen');
+  }
+
+  /* ============ 게이트 ============ */
+  function showGate(mode, msg) {
+    $('appRoot').hidden = true;
+    $('gateScreen').hidden = false;
+    ui.gateMode = mode || '';
+    var note = $('gateMsg');
+    if (note) note.textContent = msg || (mode === 'setup'
+      ? '아직 이 기기가 저장소에 연결되지 않았어요. 아이 대시보드에서 한 번만 연결해 주세요.'
+      : '아이 대시보드에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.');
+  }
+
+  function wireGate() {
+    var form = $('gateForm');
+    if (form) form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var msg = $('gMsg');
+      var owner = fieldVal('gOwner').trim(), repo = fieldVal('gRepo').trim(), token = fieldVal('gToken').trim();
+      function fail(t) { if (msg) { msg.className = 'gate-msg'; msg.textContent = t; } }
+      if (!owner || !repo || !token) return fail('아이디, 저장소, 토큰을 모두 넣어 주세요.');
+      if (!/^(gh[pousr]_|github_pat_)/.test(token)) return fail('GitHub 토큰 형식이 아니에요. (github_pat_… )');
+      var btn = $('gBtn'); if (btn) { btn.disabled = true; btn.textContent = '연결하는 중…'; }
+      try {
+        var res = await window.fetch(API_BASE + '/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo), { headers: ghHeaders(token), cache: 'no-store' });
+        if (res.status === 401) return fail('토큰이 올바르지 않아요.');
+        if (res.status === 404) return fail('저장소를 찾을 수 없어요. 아이디·저장소 이름을 확인해 주세요.');
+        if (!res.ok) return fail('저장소를 확인하지 못했어요. (HTTP ' + res.status + ')');
+        var info = await res.json();
+        if (info && info.private === false) return fail('비공개(private) 저장소만 연결할 수 있어요.');
+        if (info && info.permissions && info.permissions.push === false) return fail('토큰에 쓰기 권한이 없어요. Contents를 Read and write로 주세요.');
+        saveDevice({ owner: owner, repo: repo, token: token, branch: 'main', at: Date.now() });
+        if (msg) { msg.className = 'gate-msg ok'; msg.textContent = '연결했어요! 아이 대시보드에서 비밀번호로 로그인한 뒤 이 화면을 새로고침해 주세요.'; }
+      } catch (err) {
+        fail('연결에 실패했어요. 인터넷 연결을 확인해 주세요.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '연결하기'; }
+      }
+    });
+  }
+
+  /* ============ 부팅 ============ */
+  async function boot() {
+    cloud.sha = loadShaCache();
+    var local = loadLocal();
+    if (local) hydrateLocal(local);
+    cloud.conn = loadDevice();
+    renderSyncPill();
+    if (!cloud.conn) { showGate('setup'); return; }
+    var sess = loadSession();
+    if (!sess) { showGate('login'); return; }
+    var res = null;
+    try { res = await ghGet('config/users.json'); } catch (e) { res = null; }
+    if (res && res.status === 401) {
+      showGate('login', '토큰이 만료됐어요. 아이 대시보드에서 기기를 다시 연결해 주세요.');
+      return;
+    }
+    if (res && res.ok && res.data && Object.prototype.toString.call(res.data.users) === '[object Array]') {
+      cloud.users = res.data;
+      var u = findUser(sess.id);
+      if (!u) {
+        lsDel(SESSION_KEY); ssDel(SESSION_KEY);
+        showGate('login', '계정 정보를 찾을 수 없어요. 아이 대시보드에서 다시 로그인해 주세요.');
+        return;
+      }
+      cloud.me = { id: u.id, name: u.name || u.id, role: ROLES[u.role] ? u.role : 'viewer' };
+      cloud.session = sess;
+    } else {
+      /* 오프라인이거나 계정 파일이 없을 때: 기기에 저장된 세션으로 계속 */
+      cloud.me = { id: sess.id, name: sess.name, role: sess.role };
+      cloud.session = sess;
+    }
+    enterApp();
+  }
+
+  function enterApp() {
+    $('gateScreen').hidden = true;
+    $('appRoot').hidden = false;
+    applyUserUi();
+    renderAll();
+    loadRemote();
+  }
+
+  async function loadRemote() {
+    if (!cloud.conn || !cloud.me) return;
+    setSync('syncing');
+    var r = await Promise.all([ghGet(PATH_INV), ghGet(PATH_MEALS), ghGet(PATH_SET)]);
+    var okAll = true;
+
+    if (r[0].ok && r[0].data && !cloud.dirty.inventory) {
+      state.inventory = normalizeInventory(r[0].data);
+    } else if (r[0].ok && r[0].missing) {
+      if (!cloud.dirty.inventory) {
+        if (!state.inventory.items.length) state.inventory = seedInventory();
+        cloud.dirty.inventory = true;
+      }
+    } else if (!r[0].ok) { okAll = false; }
+
+    if (r[1].ok && r[1].data && !cloud.dirty.meals) state.meals = normalizeMeals(r[1].data);
+    else if (r[1].ok && r[1].missing) cloud.dirty.meals = true;
+    else if (!r[1].ok) okAll = false;
+
+    if (r[2].ok && r[2].data && !cloud.dirty.settings) state.settings = normalizeSettings(r[2].data);
+    else if (r[2].ok && r[2].missing) cloud.dirty.settings = true;
+    else if (!r[2].ok) okAll = false;
+
+    saveLocal();
+    renderAll();
+    if (!okAll) setSync(navigator.onLine === false ? 'offline' : 'error');
+    else if (anyDirty()) { setSync('syncing'); scheduleSync(); }
+    else setSync('ok');
+  }
+
+  /* ============ 이벤트 ============ */
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    var id = el.getAttribute('data-id') || '';
+
+    if (act === 'modal-close') { closeModal(el.getAttribute('data-m') || ''); return; }
+    if (act === 'hub-open') { openHub(); return; }
+    if (act === 'hub-close') { closeModal('hubScreen'); return; }
+    if (act === 'gate-connect') {
+      var f = $('gateForm');
+      if (f) { f.hidden = !f.hidden; if (!f.hidden) { try { $('gToken').focus(); } catch (er) { /* 무시 */ } } }
+      return;
+    }
+
+    if (act === 'settings-open') { ui.keyMsg = ''; renderSettings(); showModal('settingsModal'); return; }
+    if (act === 'item-add') { openItemModal(''); return; }
+    if (act === 'item-save') { saveItem(); return; }
+    if (act === 'item-edit') { openItemModal(id); return; }
+    if (act === 'item-del') {
+      var it = findItem(id); if (!it) return;
+      if (!window.confirm('"' + it.name + '" 를 목록에서 지울까요?')) return;
+      state.inventory.items = state.inventory.items.filter(function (x) { return x.id !== id; });
+      markDirty('inventory'); renderAll(); toast('🗑️ ' + it.name + ' 삭제했어요');
+      return;
+    }
+    if (act === 'qty-up' || act === 'qty-down') {
+      var q = findItem(id); if (!q) return;
+      q.qty = Math.max(0, num(q.qty) + (act === 'qty-up' ? 1 : -1));
+      q.status = q.qty > 0 ? 'in' : 'out';
+      q.updatedAt = Date.now();
+      markDirty('inventory'); renderAll();
+      return;
+    }
+    if (act === 'item-out' || act === 'item-restock') {
+      var o = findItem(id); if (!o) return;
+      if (act === 'item-out') {
+        o.qty = 0; o.status = 'out'; o.updatedAt = Date.now();
+        markDirty('inventory'); renderAll(); toast('다 먹었어요 · ' + o.name);
+      } else {
+        o.qty = Math.max(1, num(o.minQty) || 1);
+        o.status = 'in';
+        o.boughtAt = todayStr();
+        o.updatedAt = Date.now();
+        markDirty('inventory'); renderAll(); toast('🛒 ' + o.name + ' 재입고 완료!');
+      }
+      return;
+    }
+    if (act === 'item-staple') {
+      var st = findItem(id); if (!st) return;
+      st.staple = !st.staple;
+      if (st.staple && !st.minQty) st.minQty = 1;
+      st.updatedAt = Date.now();
+      markDirty('inventory'); renderAll();
+      toast(st.staple ? '★ ' + st.name + ' 단골로 표시했어요' : st.name + ' 단골 해제');
+      return;
+    }
+    if (act === 'st-toggle') {
+      var key = el.getAttribute('data-st');
+      ui.storages[key] = !ui.storages[key];
+      renderTools(); renderInventory();
+      return;
+    }
+    if (act === 'shop-toggle') { ui.shopOpen = !ui.shopOpen; renderShopping(); return; }
+    if (act === 'status-set') {
+      ui.status = el.getAttribute('data-st');
+      renderTools(); renderInventory();
+      return;
+    }
+    if (act === 'filter-reset') {
+      ui.search = '';
+      ui.storages = { frozen: true, fridge: true, room: true, sauce: true };
+      ui.status = 'in'; ui.sort = 'new';
+      renderTools(); renderInventory();
+      return;
+    }
+    if (act === 'recipe-toggle') { ui.recipeAll = !ui.recipeAll; renderRecipes(); return; }
+    if (act === 'ai-refresh') { refreshAI(); return; }
+
+    if (act === 'receipt-open') { openReceipt(); return; }
+    if (act === 'receipt-pick') {
+      var rf = $('receiptFile');
+      if (rf) rf.click();
+      return;
+    }
+    if (act === 'receipt-add') { addReviewed(); return; }
+
+    if (act === 'key-save') {
+      var kv = fieldVal('keyInput').trim();
+      if (!kv) { ui.keyMsg = 'err:키를 입력해 주세요.'; renderSettings(); return; }
+      lsSet(KEY_KEY, kv);
+      ui.keyMsg = 'ok:키를 이 브라우저에 저장했어요. GitHub에는 올라가지 않아요.';
+      renderSettings(); renderRecipes();
+      return;
+    }
+    if (act === 'key-clear') {
+      lsDel(KEY_KEY);
+      ui.keyMsg = 'ok:키를 지웠어요.';
+      renderSettings(); renderRecipes();
+      return;
+    }
+    if (act === 'key-check') { checkKey(); return; }
+    if (act === 'budget-save') {
+      if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
+      var b = Math.max(0, Math.round(num(fieldVal('budgetInput'))));
+      if (!b) { toast('목표 금액을 넣어 주세요.', true); return; }
+      state.meals.budget = b;
+      markDirty('meals'); renderAll(); renderSettings();
+      toast('💰 월 식비 목표를 ' + fmtWon(b) + '원으로 저장했어요');
+      return;
+    }
+    if (act === 'sync-now') { flushSync(); toast('☁️ 동기화를 시작했어요'); return; }
+    if (act === 'reload-data') {
+      if (anyDirty()) { toast('저장하지 않은 변경이 있어요. 잠시 뒤 다시 시도해 주세요.', true); return; }
+      loadRemote(); toast('GitHub에서 다시 불러오는 중…');
+      return;
+    }
+
+    if (act === 'meal-edit') {
+      if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
+      openMealModal(el.getAttribute('data-day') || '');
+      return;
+    }
+    if (act === 'meal-save') { saveMeal(); return; }
+    if (act === 'week-prev' || act === 'week-next') {
+      var d0 = parseYmd(ui.weekStart) || new Date();
+      var d1 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + (act === 'week-next' ? 7 : -7));
+      ui.weekStart = ymd(mondayOf(d1));
+      renderMeals();
+      return;
+    }
+    if (act === 'week-today') { ui.weekStart = ymd(mondayOf(new Date())); renderMeals(); return; }
+
+    if (act === 'expense-open') { renderExpense(); showModal('expenseModal'); return; }
+    if (act === 'expense-save') {
+      var amount = Math.max(0, Math.round(num(fieldVal('exAmount'))));
+      if (!amount) { toast('금액을 넣어 주세요.', true); return; }
+      state.meals.expenses.push({
+        id: uid('ex'),
+        date: isYmd(fieldVal('exDate')) ? fieldVal('exDate') : todayStr(),
+        amount: amount,
+        note: fieldVal('exNote').slice(0, 40),
+        createdAt: Date.now()
+      });
+      markDirty('meals'); renderAll(); renderExpense();
+      toast('💰 ' + fmtWon(amount) + '원 기록했어요');
+      return;
+    }
+    if (act === 'expense-del') {
+      state.meals.expenses = state.meals.expenses.filter(function (x) { return x.id !== id; });
+      markDirty('meals'); renderAll(); renderExpense();
+      return;
+    }
+  });
+
+  document.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t) return;
+    if (t.id === 'searchInput') {
+      ui.search = t.value;
+      renderInventory();
+      return;
+    }
+    if (t.id === 'sortSel') return;
+    if (t.hasAttribute && t.hasAttribute('data-ri') && ui.rec && ui.rec.step === 'review') {
+      var i = parseInt(t.getAttribute('data-ri'), 10);
+      var f = t.getAttribute('data-f');
+      var item = ui.rec.items[i];
+      if (!item || !f) return;
+      item[f] = (f === 'qty' || f === 'price') ? num(t.value) : t.value;
+      if (f !== 'name') { /* 이름 수정 중엔 목록을 다시 그리지 않음 */ }
+      var cnt = $('recCount');
+      if (cnt) {
+        var n = 0;
+        for (var k = 0; k < ui.rec.items.length; k++) if (ui.rec.items[k].include) n++;
+        cnt.textContent = n + '개 선택';
+      }
+    }
+  });
+
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (!t) return;
+    if (t.id === 'sortSel') { ui.sort = t.value; renderTools(); renderInventory(); return; }
+    if (t.id === 'receiptFile' && t.files && t.files[0]) {
+      var f = t.files[0];
+      analyzeReceipt(f);
+      return;
+    }
+    if (t.hasAttribute && t.hasAttribute('data-ri') && ui.rec && ui.rec.step === 'review') {
+      var i = parseInt(t.getAttribute('data-ri'), 10);
+      var item = ui.rec.items[i];
+      if (!item) return;
+      if (t.type === 'checkbox') {
+        item.include = t.checked;
+        var row = t.closest('.rec-row');
+        if (row) row.className = 'rec-row' + (item.include ? '' : ' off');
+        var cnt = $('recCount');
+        if (cnt) {
+          var n = 0;
+          for (var k = 0; k < ui.rec.items.length; k++) if (ui.rec.items[k].include) n++;
+          cnt.textContent = n + '개 선택';
+        }
+        return;
+      }
+      var f = t.getAttribute('data-f');
+      if (f === 'storage') item.storage = normStorage(t.value);
+      if (f === 'qty' || f === 'price') item[f] = num(t.value);
+      if (f === 'name' || f === 'unit') item[f] = t.value;
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' && e.key !== 'Esc') return;
+    var open = document.querySelector('.hub:not([hidden])');
+    if (open) { closeModal('hubScreen'); return; }
+    var sheets = document.querySelectorAll('.sheet:not([hidden])');
+    if (sheets.length) closeModal(sheets[sheets.length - 1].id);
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('sheet')) {
+      closeModal(e.target.id);
+    }
+    if (e.target && e.target.id === 'hubScreen') closeModal('hubScreen');
+  });
+
+  window.addEventListener('online', function () {
+    if (cloud.me && anyDirty()) flushSync();
+    else if (cloud.me && (cloud.status === 'offline' || cloud.status === 'error')) loadRemote();
+  });
+  window.addEventListener('visibilitychange', function () {
+    if (!document.hidden && cloud.me && anyDirty()) flushSync();
+  });
+  window.setInterval(function () {
+    if (cloud.me && anyDirty() && navigator.onLine !== false) flushSync();
+  }, 15000);
+
+  /* ============ 시작 ============ */
+  wireGate();
+  boot();
+})();
+</script>
+</body>
+</html>
