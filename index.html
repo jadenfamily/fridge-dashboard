@@ -66,6 +66,7 @@
   .brand-sub .dot{ opacity:.5; }
   .hub-btn{
     flex:0 0 auto; border:none; border-radius:12px; min-height:38px; padding:0 11px; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:5px; text-decoration:none;
     background:#fff; color:#0d6b52; font-size:12px; font-weight:900; box-shadow:0 3px 10px rgba(118,86,54,.10);
     touch-action:manipulation; position:relative; z-index:1;
   }
@@ -566,7 +567,7 @@
 
   <header class="topbar">
     <div class="brand">
-      <button class="hub-btn" type="button" data-act="hub-open" aria-haspopup="dialog">🏠 허브</button>
+      <a class="hub-btn" href="../home/" title="가족 허브">🏠 허브</a>
       <div class="brand-text">
         <h1>🧊 냉장고 파먹기</h1>
         <p class="brand-sub">
@@ -632,8 +633,8 @@
         <p>가족만 들어올 수 있어요</p>
       </div>
     </div>
-    <p class="gate-note" id="gateMsg">아이 대시보드에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.</p>
-    <a class="gate-btn" id="gateKidsLink" href="../kids-dashboard/">🏠 아이 대시보드로 가기</a>
+    <p class="gate-note" id="gateMsg">가족 허브에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.</p>
+    <a class="gate-btn" id="gateHomeLink" href="../home/">🏠 가족 허브로 가기</a>
     <button class="gate-link" type="button" data-act="gate-connect">기기가 아직 연결되지 않았나요? 직접 연결하기</button>
     <form class="gate-form" id="gateForm" hidden autocomplete="off">
       <label>GitHub 아이디<input id="gOwner" value="jadenfamily" maxlength="39" spellcheck="false"></label>
@@ -642,7 +643,7 @@
       <button class="gate-btn sub" type="submit" id="gBtn">연결하기</button>
       <p class="gate-msg" id="gMsg"></p>
     </form>
-    <p class="gate-hint">연결 정보와 로그인 상태는 같은 주소(jadenfamily.github.io)의 브라우저 저장소를 아이 대시보드와 함께 써요.</p>
+    <p class="gate-hint">연결 정보와 로그인 상태는 같은 주소(jadenfamily.github.io)의 브라우저 저장소를 가족 대시보드와 함께 써요.</p>
   </div>
 </div>
 
@@ -709,20 +710,6 @@
   </div>
 </div>
 
-<div class="hub" id="hubScreen" hidden role="dialog" aria-modal="true" aria-labelledby="hubTitle">
-  <div class="hub-card">
-    <div class="hub-head">
-      <div>
-        <h2 id="hubTitle">🏠 우리 집 대시보드</h2>
-        <p class="hub-sub" id="hubSub">오늘은 어디로 갈까요?</p>
-      </div>
-      <button class="x" type="button" data-act="hub-close" aria-label="허브 닫기">✕</button>
-    </div>
-    <div class="hub-grid" id="hubGrid"></div>
-    <p class="hub-note">📒 가계부는 같은 저장소 구조(<b>ledger/</b>)로 다음에 만들 예정이에요. 재료 가격은 그때 그대로 이어 쓸 수 있어요.</p>
-  </div>
-</div>
-
 <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
 <script>
@@ -734,6 +721,7 @@
   var DEVICE_KEY = 'kidsDashboard.device.v1';
   var SESSION_KEY = 'kidsDashboard.session.v1';
   var HUB_KEY = 'kidsDashboard.hub.v1';
+  var HUB_LAST_KEY = 'kidsDashboard.hub.last';
   var LOCAL_KEY = 'fridgeDashboard.v1';
   var SHA_KEY = 'fridgeDashboard.sha.v1';
   var KEY_KEY = 'fridgeDashboard.geminiKey.v1';
@@ -1330,7 +1318,7 @@
     saveLocal();
     if (failed) {
       setSync(navigator.onLine === false ? 'offline' : 'error');
-      if (failed.status === 401 || failed.status === 403) toast('저장 권한이 없어요. 아이 대시보드에서 기기를 다시 연결해 주세요.', true);
+      if (failed.status === 401 || failed.status === 403) toast('저장 권한이 없어요. 가족 허브에서 기기를 다시 연결해 주세요.', true);
     } else {
       setSync(navigator.onLine === false ? 'offline' : 'ok');
     }
@@ -2973,38 +2961,6 @@
       '<p class="note" style="margin-top:10px">재료 구매 합계는 식재료의 구매일·가격에서 자동 계산돼요. 여기에는 영수증에 없던 지출만 적어 주세요.</p>';
   }
 
-  /* ---------- 허브 ---------- */
-  function hubConfig() {
-    var c = null;
-    try { c = JSON.parse(lsGet(HUB_KEY) || '{}'); } catch (e) { c = null; }
-    if (!c || typeof c !== 'object') c = {};
-    return c;
-  }
-  function renderHub() {
-    var grid = $('hubGrid'); if (!grid) return;
-    var c = hubConfig();
-    var kids = (typeof c.kids === 'string' && c.kids.trim()) ? c.kids.trim() : '../kids-dashboard/';
-    grid.innerHTML = '' +
-      '<a class="hub-tile kids" href="' + esc(kids) + '">' +
-        '<span class="ht-emoji">👦</span>' +
-        '<span class="ht-body"><span class="ht-title">아이 대시보드</span><span class="ht-desc">루틴 체크 · 칭찬 스티커 · 학원 시간표</span></span>' +
-        '<span class="ht-go">열기 →</span></a>' +
-      '<div class="hub-tile fridge"><span class="ht-badge">지금 사용 중</span>' +
-        '<span class="ht-emoji">🧊</span>' +
-        '<span class="ht-body"><span class="ht-title">냉장고 파먹기</span><span class="ht-desc">식재료 재고 · 장보기 알림 · 주간 식단</span></span>' +
-        '<span class="ht-go">현재 화면</span></div>' +
-      '<div class="hub-tile ledger">' +
-        '<span class="ht-emoji">📒</span>' +
-        '<span class="ht-body"><span class="ht-title">가계부</span><span class="ht-desc">식비·생활비 기록을 한곳에 모아요</span></span>' +
-        '<span class="ht-go">준비 중 🚧</span></div>';
-  }
-  function openHub() {
-    renderHub();
-    var sub = $('hubSub');
-    if (sub) sub.textContent = (cloud.me ? (cloud.me.name || cloud.me.id) + '님, ' : '') + '오늘은 어디로 갈까요?';
-    showModal('hubScreen');
-  }
-
   /* ============ 게이트 ============ */
   function showGate(mode, msg) {
     $('appRoot').hidden = true;
@@ -3012,8 +2968,8 @@
     ui.gateMode = mode || '';
     var note = $('gateMsg');
     if (note) note.textContent = msg || (mode === 'setup'
-      ? '아직 이 기기가 저장소에 연결되지 않았어요. 아이 대시보드에서 한 번만 연결해 주세요.'
-      : '아이 대시보드에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.');
+      ? '아직 이 기기가 저장소에 연결되지 않았어요. 가족 허브에서 한 번만 연결해 주세요.'
+      : '가족 허브에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.');
   }
 
   function wireGate() {
@@ -3035,7 +2991,7 @@
         if (info && info.private === false) return fail('비공개(private) 저장소만 연결할 수 있어요.');
         if (info && info.permissions && info.permissions.push === false) return fail('토큰에 쓰기 권한이 없어요. Contents를 Read and write로 주세요.');
         saveDevice({ owner: owner, repo: repo, token: token, branch: 'main', at: Date.now() });
-        if (msg) { msg.className = 'gate-msg ok'; msg.textContent = '연결했어요! 아이 대시보드에서 비밀번호로 로그인한 뒤 이 화면을 새로고침해 주세요.'; }
+        if (msg) { msg.className = 'gate-msg ok'; msg.textContent = '연결했어요! 가족 허브에서 비밀번호로 로그인한 뒤 이 화면을 새로고침해 주세요.'; }
       } catch (err) {
         fail('연결에 실패했어요. 인터넷 연결을 확인해 주세요.');
       } finally {
@@ -3057,7 +3013,7 @@
     var res = null;
     try { res = await ghGet('config/users.json'); } catch (e) { res = null; }
     if (res && res.status === 401) {
-      showGate('login', '토큰이 만료됐어요. 아이 대시보드에서 기기를 다시 연결해 주세요.');
+      showGate('login', '토큰이 만료됐어요. 가족 허브에서 기기를 다시 연결해 주세요.');
       return;
     }
     if (res && res.ok && res.data && Object.prototype.toString.call(res.data.users) === '[object Array]') {
@@ -3065,7 +3021,7 @@
       var u = findUser(sess.id);
       if (!u) {
         lsDel(SESSION_KEY); ssDel(SESSION_KEY);
-        showGate('login', '계정 정보를 찾을 수 없어요. 아이 대시보드에서 다시 로그인해 주세요.');
+        showGate('login', '계정 정보를 찾을 수 없어요. 가족 허브에서 다시 로그인해 주세요.');
         return;
       }
       cloud.me = { id: u.id, name: u.name || u.id, role: ROLES[u.role] ? u.role : 'viewer' };
@@ -3079,6 +3035,7 @@
   }
 
   function enterApp() {
+    lsSet(HUB_LAST_KEY, 'fridge'); /* 가족 허브(/home/)의 '최근 사용' 표시용 */
     $('gateScreen').hidden = true;
     $('appRoot').hidden = false;
     initTab();
@@ -3157,8 +3114,6 @@
       markDirty('settings'); closeModal('linkModal'); renderRecipes(); toast('링크를 지웠어요');
       return;
     }
-    if (act === 'hub-open') { openHub(); return; }
-    if (act === 'hub-close') { closeModal('hubScreen'); return; }
     if (act === 'gate-connect') {
       var f = $('gateForm');
       if (f) { f.hidden = !f.hidden; if (!f.hidden) { try { $('gToken').focus(); } catch (er) { /* 무시 */ } } }
@@ -3385,8 +3340,6 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' && e.key !== 'Esc') return;
-    var open = document.querySelector('.hub:not([hidden])');
-    if (open) { closeModal('hubScreen'); return; }
     var sheets = document.querySelectorAll('.sheet:not([hidden])');
     if (sheets.length) closeModal(sheets[sheets.length - 1].id);
   });
@@ -3395,7 +3348,6 @@
     if (e.target && e.target.classList && e.target.classList.contains('sheet')) {
       closeModal(e.target.id);
     }
-    if (e.target && e.target.id === 'hubScreen') closeModal('hubScreen');
   });
 
   window.addEventListener('online', function () {
