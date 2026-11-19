@@ -725,6 +725,10 @@
   var LOCAL_KEY = 'fridgeDashboard.v1';
   var SHA_KEY = 'fridgeDashboard.sha.v1';
   var KEY_KEY = 'fridgeDashboard.geminiKey.v1';
+  var KEY_SHARED_KEY = 'fridgeDashboard.geminiKey.shared.v1';
+  var AI_STATE_KEY = 'fridgeDashboard.aiState.v1';
+  var AI_PATH = 'config/ai.json';
+  var AI_ITER = 120000;
   var TAB_KEY = 'fridgeDashboard.tab.v1';
   var BUDGET_DEFAULT = 700000;
   var PATH_INV = 'fridge/inventory.json';
@@ -1240,6 +1244,129 @@
       }
     }
     return { ok: false, status: 409, error: '다른 기기에서 먼저 저장했어요' };
+  }
+
+  /* ============ 가족 공유 Gemini 키 (AES-GCM) ============
+     config/ai.json 에 암호문만 올려 두고, 가족 저장소에 연결된 모든 기기가
+     같은 암호키(저장소 주소에서 유도)로 풀어서 씁니다. 평문은 GitHub에 남지 않아요. */
+  function aiCrypto() { return (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null; }
+  function aiPass() {
+    var c = cloud.conn || {};
+    return String(c.owner || '').toLowerCase() + '/' + String(c.repo || '').toLowerCase() + '::jadenfamily-ai-v1';
+  }
+  function aiB64(buf) {
+    var b = new Uint8Array(buf), s = '', i;
+    for (i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+    return window.btoa(s);
+  }
+  function aiUnB64(txt) {
+    var bin = window.atob(String(txt || '').replace(/\s/g, '')), i;
+    var out = new Uint8Array(bin.length);
+    for (i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  async function aiKey(salt, iter) {
+    var sub = aiCrypto();
+    if (!sub) throw new Error('이 브라우저에서는 암호화를 쓸 수 없어요');
+    var raw = new TextEncoder().encode(aiPass());
+    if (!salt) {
+      var d = await sub.digest('SHA-256', raw);
+      return sub.importKey('raw', d, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+    }
+    var base = await sub.importKey('raw', raw, { name: 'PBKDF2' }, false, ['deriveKey']);
+    return sub.deriveKey({ name: 'PBKDF2', salt: salt, iterations: Math.max(1, Number(iter) || 1), hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
+  async function aiEncrypt(keyStr) {
+    var sub = aiCrypto();
+    if (!sub) throw new Error('이 브라우저에서는 암호화를 쓸 수 없어요');
+    var salt = window.crypto.getRandomValues(new Uint8Array(16));
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    var k = await aiKey(salt, AI_ITER);
+    var ct = await sub.encrypt({ name: 'AES-GCM', iv: iv }, k, new TextEncoder().encode(JSON.stringify({ key: String(keyStr) })));
+    return { version: 1, alg: 'AES-GCM', kdf: 'PBKDF2-SHA256', iter: AI_ITER, salt: aiB64(salt), iv: aiB64(iv), ct: aiB64(ct), updatedAt: nowIso() };
+  }
+  async function aiDecrypt(p) {
+    if (!p || !p.iv || !p.ct) return '';
+    var sub = aiCrypto();
+    if (!sub) return '';
+    var k = await aiKey(p.salt ? aiUnB64(p.salt) : null, Number(p.iter) || 1);
+    var pt = await sub.decrypt({ name: 'AES-GCM', iv: aiUnB64(p.iv) }, k, aiUnB64(p.ct));
+    var txt = new TextDecoder('utf-8').decode(new Uint8Array(pt));
+    var j = null;
+    try { j = JSON.parse(txt); } catch (e) { j = null; }
+    return (j && typeof j === 'object') ? String(j.key || '') : String(txt || '');
+  }
+  function aiState() { try { return JSON.parse(lsGet(AI_STATE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function aiSetState(o) { lsSet(AI_STATE_KEY, JSON.stringify(o || {})); }
+  function sharedKey() { return String(lsGet(KEY_SHARED_KEY) || '').trim(); }
+  function keyOrigin() { return sharedKey() ? 'shared' : (lsGet(KEY_KEY) ? 'local' : ''); }
+  async function aiPush(keyStr) {
+    try {
+      var payload = await aiEncrypt(String(keyStr || ''));
+      var r = await ghPut(AI_PATH, payload, '가족 공유 Gemini 키 저장');
+      if (!r.ok) return { ok: false, error: r.error || '공유 저장 실패' };
+      return { ok: true, updatedAt: payload.updatedAt };
+    } catch (e) {
+      return { ok: false, error: '암호화하지 못했어요' };
+    }
+  }
+  async function aiClearRemote() {
+    try {
+      var r = await ghPut(AI_PATH, { version: 1, alg: 'AES-GCM', cleared: true, updatedAt: nowIso() }, '가족 공유 Gemini 키 삭제');
+      return { ok: !!r.ok, error: r.error || '' };
+    } catch (e) {
+      return { ok: false, error: '삭제하지 못했어요' };
+    }
+  }
+  async function aiSyncShared() {
+    if (!cloud.conn || !cloud.me) return;
+    var local = String(lsGet(KEY_KEY) || '').trim();
+    var st = aiState();
+    var next = { source: st.source || '', updatedAt: st.updatedAt || '', at: Date.now(), note: '' };
+    var r = null;
+    try { r = await ghGet(AI_PATH); } catch (e) { r = null; }
+    if (!r || !r.ok) {
+      next.source = sharedKey() ? 'shared' : (local ? 'local' : 'none');
+      next.note = 'offline';
+      aiSetState(next); renderSettings(); return;
+    }
+    if (r.missing) {
+      if (local && canEdit()) {
+        var up = await aiPush(local);
+        if (up.ok) { next.source = 'shared'; next.updatedAt = up.updatedAt; next.note = 'uploaded'; }
+        else { next.source = 'local'; next.note = up.error || 'error'; }
+      } else {
+        next.source = local ? 'local' : 'none';
+      }
+      aiSetState(next); renderSettings(); return;
+    }
+    var p = r.data || {};
+    var remoteAt = String(p.updatedAt || '');
+    if (p.cleared) {
+      lsDel(KEY_SHARED_KEY);
+      next.source = local ? 'local' : 'none';
+      next.updatedAt = remoteAt;
+      aiSetState(next); renderSettings(); return;
+    }
+    var remoteKey = '';
+    try { remoteKey = await aiDecrypt(p); } catch (e) { remoteKey = ''; }
+    if (!remoteKey) {
+      next.source = sharedKey() ? 'shared' : (local ? 'local' : 'none');
+      next.note = 'decrypt';
+      aiSetState(next); renderSettings(); return;
+    }
+    /* 이 기기에서 방금 저장한 키가 더 최신이면 이쪽을 올려서 가족 키로 맞춘다 */
+    if (local && st.source === 'local' && st.updatedAt && (!remoteAt || st.updatedAt > remoteAt) && canEdit()) {
+      var up2 = await aiPush(local);
+      if (up2.ok) { next.source = 'shared'; next.updatedAt = up2.updatedAt; }
+      else { next.source = 'local'; next.note = up2.error || 'error'; }
+      aiSetState(next); renderSettings(); return;
+    }
+    lsSet(KEY_SHARED_KEY, remoteKey);
+    next.source = 'shared';
+    next.updatedAt = remoteAt;
+    aiSetState(next);
+    renderSettings(); renderRecipes();
   }
 
   /* ============ 동기화 ============ */
@@ -2550,7 +2677,7 @@
   }
 
   /* ---------- 영수증 ---------- */
-  function getKey() { return lsGet(KEY_KEY) || ''; }
+  function getKey() { return sharedKey() || String(lsGet(KEY_KEY) || '').trim(); }
 
   function renderReceipt() {
     var body = $('receiptBody'); if (!body) return;
@@ -2893,17 +3020,22 @@
   function renderSettings() {
     var body = $('settingsBody'); if (!body) return;
     var key = getKey();
-    var keyBadge = key ? '<span class="badge ok">저장됨 · 이 브라우저에만</span>' : '<span class="badge">없음</span>';
+    var origin = keyOrigin();
+    var keyBadge = origin === 'shared' ? '<span class="badge ok">가족 공유 키 연결됨 ✓</span>' :
+      (origin === 'local' ? '<span class="badge ok">이 기기에만 저장됨</span>' : '<span class="badge">없음</span>');
+    var keyInfo = origin === 'shared' ? '가족 모두 같은 키를 써요. 여기서 바꾸면 모든 기기에 함께 적용돼요.' :
+      (origin === 'local' ? (canEdit() ? '이 기기에만 있어요. 가족과 함께 쓰려면 공유해 주세요.' : '이 기기에만 저장된 키예요.') : '영수증 자동 인식과 AI 식단 추천에 써요.');
     var keyMsg = ui.keyMsg ? '<p class="form-msg' + (ui.keyMsg.indexOf('ok:') === 0 ? ' ok' : '') + '">' + esc(ui.keyMsg.replace(/^(ok|err):/, '')) + '</p>' : '<p class="form-msg"></p>';
     var d = new Date(cloud.statusAt || Date.now());
     var syncTxt = syncText();
     body.innerHTML = '' +
       '<div class="set-sec">' +
         '<h3>✨ Gemini API 키 ' + keyBadge + '</h3>' +
-        '<p class="set-info">영수증 자동 인식과 AI 식단 추천에 써요.</p>' +
+        '<p class="set-info">' + esc(keyInfo) + '</p>' +
         '<div class="row"><input id="keyInput" type="password" placeholder="AQ… 또는 AIza… (새 키로 바꿀 때만 입력)" autocomplete="off" spellcheck="false">' +
         '<button class="btn sm" type="button" data-act="key-save">키 저장</button>' +
         '<button class="btn sm sub" type="button" data-act="key-check">연결 확인</button>' +
+        (origin === 'local' && canEdit() ? '<button class="btn sm sub" type="button" data-act="key-share">가족과 공유</button>' : '') +
         (key ? '<button class="btn sm ghost" type="button" data-act="key-clear">삭제</button>' : '') + '</div>' +
         keyMsg +
         '<p class="set-info" style="margin-top:6px">무료 키 발급: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>' +
@@ -3042,6 +3174,7 @@
     applyUserUi();
     renderAll();
     loadRemote();
+    aiSyncShared();
   }
 
   async function loadRemote() {
@@ -3120,7 +3253,7 @@
       return;
     }
 
-    if (act === 'settings-open') { ui.keyMsg = ''; renderSettings(); showModal('settingsModal'); return; }
+    if (act === 'settings-open') { ui.keyMsg = ''; renderSettings(); showModal('settingsModal'); aiSyncShared(); return; }
     if (act === 'item-add') { openItemModal(''); return; }
     if (act === 'item-save') { saveItem(); return; }
     if (act === 'item-edit') { openItemModal(id); return; }
@@ -3200,15 +3333,63 @@
     if (act === 'key-save') {
       var kv = fieldVal('keyInput').trim();
       if (!kv) { ui.keyMsg = 'err:키를 입력해 주세요.'; renderSettings(); return; }
+      if (!canEdit()) { ui.keyMsg = 'err:보기 전용 계정은 키를 바꿀 수 없어요.'; renderSettings(); return; }
       lsSet(KEY_KEY, kv);
-      ui.keyMsg = 'ok:키를 이 브라우저에 저장했어요. GitHub에는 올라가지 않아요.';
-      renderSettings(); renderRecipes();
+      lsDel(KEY_SHARED_KEY);
+      aiSetState({ source: 'local', updatedAt: nowIso(), at: Date.now(), note: '' });
+      renderRecipes();
+      if (!cloud.conn || !cloud.me) {
+        ui.keyMsg = 'ok:키를 이 브라우저에 저장했어요.';
+        renderSettings();
+        return;
+      }
+      ui.keyMsg = 'ok:키를 저장하고 가족과 공유하는 중…';
+      renderSettings();
+      aiPush(kv).then(function (r) {
+        if (r.ok) {
+          lsSet(KEY_SHARED_KEY, kv);
+          aiSetState({ source: 'shared', updatedAt: r.updatedAt, at: Date.now(), note: '' });
+          ui.keyMsg = 'ok:저장했어요. 가족 모두 이 키를 함께 써요.';
+        } else {
+          ui.keyMsg = 'err:이 기기에는 저장했지만 가족 공유는 실패했어요 — ' + (r.error || '') ;
+        }
+        renderSettings();
+      });
+      return;
+    }
+    if (act === 'key-share') {
+      var shk = String(lsGet(KEY_KEY) || '').trim();
+      if (!shk) { ui.keyMsg = 'err:먼저 키를 저장해 주세요.'; renderSettings(); return; }
+      if (!canEdit()) { ui.keyMsg = 'err:보기 전용 계정은 키를 공유할 수 없어요.'; renderSettings(); return; }
+      ui.keyMsg = 'ok:가족과 공유하는 중…';
+      renderSettings();
+      aiPush(shk).then(function (r2) {
+        if (r2.ok) {
+          lsSet(KEY_SHARED_KEY, shk);
+          aiSetState({ source: 'shared', updatedAt: r2.updatedAt, at: Date.now(), note: '' });
+          ui.keyMsg = 'ok:가족 공유 키로 올렸어요. 다른 기기에서도 자동으로 써요.';
+        } else {
+          ui.keyMsg = 'err:공유하지 못했어요 — ' + (r2.error || '');
+        }
+        renderSettings();
+      });
       return;
     }
     if (act === 'key-clear') {
+      var wasShared = keyOrigin() === 'shared';
+      if (wasShared && canEdit() && cloud.conn && cloud.me) {
+        if (!window.confirm('가족 모두가 함께 쓰는 공유 키를 지울까요?  다른 기기에서도 이 키를 쓸 수 없게 돼요.')) return;
+      }
       lsDel(KEY_KEY);
+      lsDel(KEY_SHARED_KEY);
+      aiSetState({ source: 'none', updatedAt: nowIso(), at: Date.now(), note: '' });
       ui.keyMsg = 'ok:키를 지웠어요.';
       renderSettings(); renderRecipes();
+      if (wasShared && canEdit() && cloud.conn && cloud.me) {
+        aiClearRemote().then(function (rc) {
+          if (!rc.ok) { ui.keyMsg = 'err:이 기기에서는 지웠지만 가족 공유 키 삭제는 실패했어요'; renderSettings(); }
+        });
+      }
       return;
     }
     if (act === 'key-check') { checkKey(); return; }
