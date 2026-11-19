@@ -324,12 +324,12 @@
   .gate-msg.ok{ color:#12805c; }
 
   /* ---------- 시트(모달) ---------- */
-  .sheet{ position:fixed; inset:0; z-index:88; display:flex; align-items:center; justify-content:center; padding:clamp(8px,1.6vw,22px); background:rgba(35,45,55,.42); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
-  .sheet-card{ width:100%; max-width:560px; max-height:92vh; display:flex; flex-direction:column; background:#fffdf9; border-radius:26px; overflow:hidden; box-shadow:0 26px 64px rgba(0,0,0,.3); }
+  .sheet{ position:fixed; inset:0; z-index:88; display:flex; align-items:center; justify-content:center; padding:clamp(8px,1.6vw,22px); background:rgba(35,45,55,.42); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); overflow:hidden; overscroll-behavior:contain; touch-action:none; }
+  .sheet-card{ width:100%; max-width:560px; max-height:92vh; max-height:calc(100dvh - 20px); display:flex; flex-direction:column; background:#fffdf9; border-radius:26px; overflow:hidden; box-shadow:0 26px 64px rgba(0,0,0,.3); overscroll-behavior:contain; }
   .sheet-card.wide{ max-width:760px; }
   .sheet-head{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 15px 11px; border-bottom:2px solid #f6ece0; background:linear-gradient(135deg,#eef9ff 0%,#f6f0ff 100%); }
   .sheet-head h2{ margin:0; font-size:clamp(17px,2vw,20px); font-weight:900; letter-spacing:-.02em; }
-  .sheet-body{ flex:1 1 auto; overflow:auto; padding:14px 15px 18px; -webkit-overflow-scrolling:touch; }
+  .sheet-body{ flex:1 1 auto; overflow:auto; padding:14px 15px 18px; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; }
   .x{ width:36px; height:36px; border-radius:11px; border:none; background:#fff; color:#8a7f70; font-size:15px; font-weight:900; cursor:pointer; }
   .form{ display:flex; flex-direction:column; gap:10px; }
   .form label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:900; color:#6d6484; min-width:0; }
@@ -479,7 +479,7 @@
   .so-btn[disabled]{ opacity:.3; cursor:default; }
 
   /* ---------- 허브 ---------- */
-  .hub{ position:fixed; inset:0; z-index:94; display:flex; align-items:center; justify-content:center; padding:clamp(10px,2vw,26px); overflow:auto;
+  .hub{ position:fixed; inset:0; z-index:94; display:flex; align-items:center; justify-content:center; padding:clamp(10px,2vw,26px); overflow:auto; overscroll-behavior:contain;
     background:
       radial-gradient(circle at 12% 0%, #dff4ff 0, rgba(223,244,255,0) 42%),
       radial-gradient(circle at 88% 4%, #ffe9d6 0, rgba(255,233,214,0) 40%),
@@ -2593,21 +2593,53 @@
   }
 
   /* ============ 모달 열기/닫기 ============ */
+  /* iOS Safari는 body overflow만으로는 뒷페이지 스크롤을 막지 못해서 body를 fixed로 고정한다. */
+  var scrollLock = { on: false, y: 0 };
+  var MODAL_SEL = '.sheet:not([hidden]), .hub:not([hidden])';
+  function lockBodyScroll() {
+    if (scrollLock.on) return;
+    scrollLock.y = window.scrollY || window.pageYOffset || 0;
+    var b = document.body, h = document.documentElement;
+    b.style.position = 'fixed';
+    b.style.top = '-' + scrollLock.y + 'px';
+    b.style.left = '0';
+    b.style.right = '0';
+    b.style.width = '100%';
+    b.style.overflow = 'hidden';
+    h.style.overflow = 'hidden';
+    scrollLock.on = true;
+  }
+  function unlockBodyScroll() {
+    if (!scrollLock.on) return;
+    var b = document.body, h = document.documentElement;
+    b.style.position = '';
+    b.style.top = '';
+    b.style.left = '';
+    b.style.right = '';
+    b.style.width = '';
+    b.style.overflow = '';
+    h.style.overflow = '';
+    scrollLock.on = false;
+    window.scrollTo(0, scrollLock.y);
+  }
+  function syncBodyScrollLock() {
+    if (document.querySelector(MODAL_SEL)) { if (!scrollLock.on) lockBodyScroll(); }
+    else if (scrollLock.on) unlockBodyScroll();
+  }
   function showModal(id) {
     var m = $(id);
     if (!m) return;
-    var opens = document.querySelectorAll('.sheet:not([hidden]), .hub:not([hidden])');
+    var opens = document.querySelectorAll(MODAL_SEL);
     for (var i = 0; i < opens.length; i++) {
       if (opens[i] !== m) opens[i].hidden = true;
     }
     m.hidden = false;
-    document.body.style.overflow = 'hidden';
+    syncBodyScrollLock();
   }
   function closeModal(id) {
     var m = $(id);
     if (m) m.hidden = true;
-    var any = document.querySelector('.sheet:not([hidden]), .hub:not([hidden])');
-    if (!any) document.body.style.overflow = '';
+    syncBodyScrollLock();
   }
 
   /* ---------- 식재료 폼 ---------- */
