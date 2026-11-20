@@ -2977,6 +2977,8 @@
       '<button class="btn wide" type="button" data-act="item-save">저장</button>' +
       '</div>';
     showModal('itemModal');
+    var uInput = $('itUnit');
+    if (uInput) uInput._pct = isPctUnit(unit);
     syncPercentUi();
     try { $('itName').focus(); } catch (e) { /* 무시 */ }
   }
@@ -2994,6 +2996,8 @@
   function syncPercentUi() {
     var uEl = $('itUnit'); if (!uEl) return;
     var pct = isPctUnit(uEl.value);
+    var wasPct = uEl._pct === true;
+    uEl._pct = pct;
     var chips = $('itUnitChips');
     if (chips) {
       var cbs = chips.querySelectorAll('.uchip');
@@ -3011,7 +3015,7 @@
       if (pct) { q.setAttribute('max', '100'); q.max = '100'; } else q.removeAttribute('max');
       q.setAttribute('step', pct ? '25' : '0.5');
       q.setAttribute('inputmode', pct ? 'numeric' : 'decimal');
-      if (pct) q.value = String(pctClamp(q.value));
+      if (pct) { if (!wasPct) q.value = '100'; q.value = String(pctClamp(q.value)); }
     }
     if (pres) pres.hidden = !pct;
     if (mn) {
