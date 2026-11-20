@@ -257,13 +257,13 @@
   .rc-chip b{ font-size:10px; font-weight:900; color:#b3a695; }
   .rc-chip.on{ background:#eefaf3; border-color:#b9e6d3; color:#0f7a55; }
   .rc-chip.on b{ color:#0f7a55; }
-  .rc-chip.zero{ opacity:.55; }
+  .rc-chip.zero{ opacity:.7; }
   .rc-chip:active{ transform:scale(.97); }
   .rc-sort{
     flex:0 0 auto; max-width:44vw; min-height:30px; padding:0 6px; border:1.5px solid #efe6da; border-radius:999px;
     background:#fffdf9; color:#6b6478; font-family:inherit; font-size:11.5px; font-weight:900; cursor:pointer;
   }
-  .rc-cat{ flex:0 0 auto; font-size:10px; font-weight:900; padding:2px 6px; border-radius:999px; background:#f5f1ea; color:#8a7f70; white-space:nowrap; }
+  .rc-cat{ flex:0 0 auto; font-size:9.5px; font-weight:900; padding:1px 5px; border-radius:999px; background:#f5f1ea; color:#8a7f70; white-space:nowrap; }
   .rc-cat.k{ background:#fff1f1; color:#b8435a; }
   .rc-cat.w{ background:#eef5ff; color:#2f6fb5; }
   .rc-cat.c{ background:#fff6e6; color:#a86a12; }
@@ -558,7 +558,7 @@
     .user-chip{ flex:0 0 auto; }
     .uc-role{ display:none; }
     .tab{ min-height:36px; padding:0 10px; font-size:11.5px; }
-    .rc-cats{ -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),rgba(0,0,0,0)); mask-image:linear-gradient(90deg,#000 calc(100% - 26px),rgba(0,0,0,0)); padding-right:10px; }
+    .rc-cats{ -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),rgba(0,0,0,0)); mask-image:linear-gradient(90deg,#000 calc(100% - 22px),rgba(0,0,0,0)); padding-right:10px; }
     .rc-sort{ max-width:36vw; }
     .shop-list{ grid-template-columns:1fr; }
     .shop-list:not(.open) .shop-row:nth-child(n+10){ display:none; }
@@ -3320,6 +3320,8 @@
       if (!fresh.length) {
         toast('새로운 레시피가 없어 기존 목록을 유지했어요');
       } else {
+        /* 새로 담은 요리가 바로 보이도록 카테고리 필터는 전체로 돌려둔다 */
+        if (ui.recipeCat !== 'all') ui.recipeCat = 'all';
         state.recipes.recipes = existing.concat(fresh);
         state.recipes.updatedAt = nowIso();
         markDirty('recipes');
