@@ -3141,10 +3141,20 @@
     renderRecipes();
     try {
       var stock = inStock(state.inventory.items).map(function (it) { return it.name; });
+      /* 이미 저장된 요리 이름을 프롬프트에 넣어 처음부터 겹치지 않는 새 요리를 받는다. */
+      var savedLib = (state.recipes && state.recipes.recipes) || [];
+      var savedTitles = [], si, st;
+      for (si = 0; si < savedLib.length && savedTitles.length < 60; si++) {
+        st = String((savedLib[si] && savedLib[si].title) || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+        if (st) savedTitles.push(st);
+      }
       var prompt = '너는 한국 가정의 냉장고 요리 도우미야. 아래 보유 재료만 써서 지금 100% 만들 수 있는 요리를 4~6개 추천해줘.\n' +
         '보유 재료: ' + stock.join(', ') + '\n' +
+        (savedTitles.length ? '이미 저장된 요리(중복 제외): ' + savedTitles.join(', ') + '\n' : '') +
+        '추천 방향: 요즘 유튜브·SNS에서 핫한 트렌디한 요리(원팬·초간단 인기 집밥)와 영양 균형 잡힌 건강식(고단백·채소·저당·저염 위주)을 골고루 섞어줘.\n' +
         '조건: 1) ingredients에는 보유 재료 이름만 넣고, 보유하지 않은 재료는 절대 넣지 마. (물·소금·식용유·후추는 집에 늘 있는 기본 양념이라 예외로 넣어도 됨) ' +
-        '2) 조리 30분 이내 3) 아이도 먹을 수 있는 순한 맛 위주 4) title, minutes(숫자), ingredients(재료 배열), steps(조리 순서 3~5단계 배열)를 채우기 5) 같은 요리를 중복해서 넣지 않기.';
+        '2) 조리 30분 이내 3) 아이도 같이 먹을 수 있는 순한 맛 위주 4) title, minutes(숫자), ingredients(재료 배열), steps(조리 순서 3~5단계 배열)를 채우기 ' +
+        '5) 같은 요리를 중복해서 넣지 말고, 이미 저장된 요리와 이름이 겹치거나 사실상 같은 요리는 빼기.';
       var out = await geminiJSON([{ text: prompt }], SCHEMA_RECIPES);
       var list = (out && out.recipes) || [];
       var clean = [], stockNow = stockNames(), i;
