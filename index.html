@@ -245,6 +245,30 @@
   .rc-name{ min-width:0; font-size:14px; font-weight:900; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .rc-badge{ flex:0 0 auto; font-size:10.5px; font-weight:900; padding:2px 7px; border-radius:999px; background:#eefaf3; color:#0f7a55; white-space:nowrap; }
   .rc-badge.ai{ background:#f3ecff; color:#5b3fa8; }
+  /* 카테고리 필터 칩 + 정렬 */
+  .rc-tools{ display:flex; align-items:center; gap:6px; margin:-1px 0 10px; min-width:0; }
+  .rc-cats{ display:flex; align-items:center; gap:5px; flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden; padding:2px 1px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .rc-cats::-webkit-scrollbar{ display:none; }
+  .rc-chip{
+    flex:0 0 auto; display:inline-flex; align-items:center; gap:3px; min-height:30px; padding:0 9px;
+    border:1.5px solid #efe6da; border-radius:999px; background:#fffdf9; color:#8a7f70;
+    font-family:inherit; font-size:11.5px; font-weight:900; cursor:pointer; white-space:nowrap; touch-action:manipulation;
+  }
+  .rc-chip b{ font-size:10px; font-weight:900; color:#b3a695; }
+  .rc-chip.on{ background:#eefaf3; border-color:#b9e6d3; color:#0f7a55; }
+  .rc-chip.on b{ color:#0f7a55; }
+  .rc-chip.zero{ opacity:.55; }
+  .rc-chip:active{ transform:scale(.97); }
+  .rc-sort{
+    flex:0 0 auto; max-width:44vw; min-height:30px; padding:0 6px; border:1.5px solid #efe6da; border-radius:999px;
+    background:#fffdf9; color:#6b6478; font-family:inherit; font-size:11.5px; font-weight:900; cursor:pointer;
+  }
+  .rc-cat{ flex:0 0 auto; font-size:10px; font-weight:900; padding:2px 6px; border-radius:999px; background:#f5f1ea; color:#8a7f70; white-space:nowrap; }
+  .rc-cat.k{ background:#fff1f1; color:#b8435a; }
+  .rc-cat.w{ background:#eef5ff; color:#2f6fb5; }
+  .rc-cat.c{ background:#fff6e6; color:#a86a12; }
+  .rc-cat.j{ background:#eaf7fb; color:#0f6b8a; }
+  .rc-cat.h{ background:#f3ecff; color:#5b3fa8; }
   .rc-caret{ flex:0 0 auto; margin-left:auto; font-size:9px; color:#b8ab99; transition:transform .18s; }
   .rc.open .rc-caret{ transform:rotate(180deg); }
   .rc-line{ margin:3px 0 0; font-size:11.5px; font-weight:800; color:#8a93a8; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -534,6 +558,8 @@
     .user-chip{ flex:0 0 auto; }
     .uc-role{ display:none; }
     .tab{ min-height:36px; padding:0 10px; font-size:11.5px; }
+    .rc-cats{ -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),rgba(0,0,0,0)); mask-image:linear-gradient(90deg,#000 calc(100% - 26px),rgba(0,0,0,0)); padding-right:10px; }
+    .rc-sort{ max-width:36vw; }
     .shop-list{ grid-template-columns:1fr; }
     .shop-list:not(.open) .shop-row:nth-child(n+10){ display:none; }
     .shop-more{ display:block; }
@@ -746,6 +772,7 @@
   var AI_PATH = 'config/ai.json';
   var AI_ITER = 120000;
   var TAB_KEY = 'fridgeDashboard.tab.v1';
+  var RECIPE_SORT_KEY = 'fridgeDashboard.recipeSort.v1';
   var BUDGET_DEFAULT = 700000;
   var PATH_INV = 'fridge/inventory.json';
   var PATH_MEALS = 'fridge/meals.json';
@@ -794,35 +821,69 @@
 
   /* 집에서 자주 해 먹는 한식 레시피 — 재료 매칭 + 조리법(s) */
   var RECIPES = [
-    { e: '🍚', t: '김치볶음밥', d: '김치와 달걀만 있으면 15분', ing: ['김치', '달걀', '대파', '밥', '참기름'], s: ['김치를 잘게 썰고 대파는 송송 썰어요.', '팬에 기름을 두르고 김치를 2분 볶아요.', '밥을 넣고 김치와 고루 섞어 볶아요.', '한쪽에 달걀을 풀어 익힌 뒤 참기름을 두르고 마무리해요.'] },
-    { e: '🍲', t: '김치찌개', d: '김치·두부로 끓이는 기본 찌개', ing: ['김치', '돼지고기', '두부', '대파'], s: ['돼지고기를 한입 크기로 썰어 팬에 볶아요.', '김치를 넣고 함께 볶다가 물 3컵을 부어요.', '끓어오르면 두부를 넣고 10분 더 끓여요.', '대파를 넣고 한소끔 끓여 마무리해요.'] },
-    { e: '🥘', t: '된장찌개', d: '된장 베이스로 채소 넣고 끓이기', ing: ['된장', '두부', '애호박', '감자', '대파'], s: ['무·애호박·감자를 먹기 좋게 썰어요.', '냄비에 물 3컵과 된장 1큰술을 풀어 끓여요.', '감자와 애호박을 먼저 넣고 7분 끓여요.', '두부와 대파를 넣고 3분 더 끓여요.'] },
-    { e: '🍳', t: '달걀찜', d: '달걀과 소금만으로 부드럽게', ing: ['달걀', '대파', '소금'], s: ['달걀 3개를 풀고 물 1컵과 소금을 넣어 섞어요.', '대파를 잘게 썰어 넣어요.', '냄비에 부어 약불에서 저어가며 익혀요.', '가장자리가 굳으면 뚜껑을 덮고 3분 더 익혀요.'] },
-    { e: '🍄', t: '버터간장 새송이구이', d: '새송이+버터+간장, 10분', ing: ['새송이', '버터', '간장', '마늘'], s: ['새송이버섯을 0.5cm 두께로 저며요.', '팬에 버터를 녹이고 새송이를 노릇하게 구워요.', '간장과 다진 마늘을 넣고 1분 더 볶아요.', '접시에 담고 남은 소스를 끼얹어요.'] },
-    { e: '🍝', t: '명란버터파스타', d: '명란젓과 버터로 고소하게', ing: ['명란', '버터', '스파게티면', '마늘'], s: ['끓는 물에 소금을 넣고 면을 8분 삶아요.', '팬에 버터와 다진 마늘을 약불에 볶아요.', '명란젓을 껍질에서 발라 넣고 섞어요.', '삶은 면을 넣고 면수 3큰술로 농도를 맞춰요.'] },
-    { e: '🍜', t: '매생이국', d: '매생이 넣고 시원하게 끓이기', ing: ['매생이', '마늘', '소금'], s: ['매생이를 물에 살살 헹궈요.', '냄비에 물을 끓이고 다진 마늘을 넣어요.', '매생이를 넣고 3분 끓여요.', '소금으로 간을 맞춰요.'] },
-    { e: '🥣', t: '무된장국', d: '무를 넣어 달큰한 된장국', ing: ['무', '된장', '대파', '마늘'], s: ['무를 얇게 썰고 대파를 송송 썰어요.', '물 3컵에 된장을 풀어 끓여요.', '무를 넣고 7분 끓여요.', '대파와 다진 마늘을 넣고 한소끔 끓여요.'] },
-    { e: '🍲', t: '떡국', d: '떡국떡으로 간단히 한 끼', ing: ['떡국떡', '달걀', '대파', '소고기'], s: ['떡국떡을 물에 5분 불려요.', '냄비에 물 3컵을 끓이고 떡을 넣어요.', '떡이 떠오르면 소고기와 대파를 넣어요.', '달걀을 풀어 넣고 한소끔 끓여요.'] },
-    { e: '🥟', t: '물만두국', d: '물만두 넣고 달걀 풀기', ing: ['물만두', '달걀', '대파'], s: ['물 3컵을 끓여요.', '물만두를 넣고 떠오를 때까지 4분 끓여요.', '대파를 넣고 달걀을 풀어 넣어요.', '소금으로 간을 맞춰요.'] },
-    { e: '🍜', t: '물냉면', d: '냉면 사리로 시원한 한 그릇', ing: ['냉면', '달걀', '오이', '겨자'], s: ['냉면 사리를 끓는 물에 1분 삶아 찬물에 헹궈요.', '그릇에 냉면 육수를 부어요.', '오이를 채 썰고 달걀을 삶아 반으로 잘라요.', '면을 담고 오이·달걀·겨자를 올려요.'] },
-    { e: '🍕', t: '또띠아 피자', d: '또띠아 위에 케첩·치즈·햄', ing: ['또띠아', '케첩', '치즈', '햄'], s: ['또띠아에 케첩을 고루 발라요.', '햄과 치즈를 올려요.', '에어프라이어 180도에서 6분 구워요.', '먹기 좋게 잘라요.'] },
-    { e: '🍜', t: '비빔국수', d: '고추장 양념에 소면 비비기', ing: ['소면', '고추장', '식초', '설탕', '참기름', '오이'], s: ['끓는 물에 소면을 3분 삶아 찬물에 헹궈요.', '고추장·식초·설탕·참기름을 섞어 양념을 만들어요.', '오이를 채 썰어요.', '면에 양념과 오이를 올려 비벼요.'] },
-    { e: '🍜', t: '라면 한 그릇', d: '달걀·대파 넣고 끓이기', ing: ['라면', '달걀', '대파'], s: ['물 550ml를 끓여요.', '스프와 면을 넣고 3분 끓여요.', '대파를 송송 썰어 넣어요.', '달걀을 풀어 넣고 30초 익혀요.'] },
-    { e: '🥞', t: '김치전', d: '김치와 부침가루로 노릇하게', ing: ['김치', '부침가루'], s: ['김치를 잘게 썰어요.', '부침가루와 물을 1:1로 섞어 반죽해요.', '김치를 넣고 고루 섞어요.', '팬에 기름을 두르고 앞뒤로 노릇하게 부쳐요.'] },
-    { e: '🥞', t: '매생이전', d: '매생이 넣은 바삭한 전', ing: ['매생이', '부침가루'], s: ['매생이를 살살 헹궈 물기를 빼요.', '부침가루와 물을 섞어 반죽해요.', '매생이를 넣고 가볍게 섞어요.', '팬에 얇게 펴서 앞뒤로 바삭하게 부쳐요.'] },
-    { e: '🍄', t: '건버섯 볶음', d: '불린 건버섯을 간장·참기름에', ing: ['건버섯', '간장', '참기름', '마늘'], s: ['건버섯을 미지근한 물에 20분 불려요.', '물기를 꼭 짜고 먹기 좋게 썰어요.', '팬에 기름을 두르고 마늘을 볶아요.', '건버섯을 넣고 간장·참기름으로 간해 볶아요.'] },
-    { e: '🥗', t: '단호박 샐러드', d: '찐 단호박에 요거트 드레싱', ing: ['단호박', '요거트', '아몬드가루'], s: ['단호박을 깍둑 썰어 전자레인지에 5분 익혀요.', '한김 식혀요.', '요거트에 아몬드가루를 섞어 드레싱을 만들어요.', '단호박에 드레싱을 올려요.'] },
-    { e: '🫐', t: '블루베리 요거트볼', d: '냉동 블루베리로 간단 디저트', ing: ['블루베리', '요거트'], s: ['냉동 블루베리를 살짝 녹여요.', '그릇에 요거트를 담아요.', '블루베리를 올리고 가볍게 섞어요.'] },
-    { e: '🧀', t: '치즈스틱 에어프라이', d: '냉동 치즈스틱 180도 8분', ing: ['치즈스틱'], s: ['치즈스틱을 에어프라이어에 놓아요.', '180도에서 8분 구워요.', '뒤집어 3분 더 구워요.'] },
-    { e: '🍙', t: '참기름 주먹밥', d: '밥에 참기름·깨 넣고 동글동글', ing: ['밥', '김', '참기름', '깨'], s: ['따뜻한 밥에 참기름과 깨를 넣어 섞어요.', '김을 잘게 부숴 넣어요.', '한입 크기로 동글게 뭉쳐요.'] },
-    { e: '🔥', t: '불닭볶음면', d: '불닭소스로 매콤하게', ing: ['라면', '불닭소스', '달걀'], s: ['물 500ml를 끓여 면을 4분 삶아요.', '물을 8숟갈 남기고 따라내요.', '불닭소스를 넣고 30초 볶아요.', '달걀 프라이를 올려요.'] },
-    { e: '🍝', t: '버터 마늘 파스타', d: '마늘·버터만으로 기본 파스타', ing: ['스파게티면', '마늘', '버터'], s: ['끓는 물에 소금을 넣고 면을 8분 삶아요.', '팬에 버터를 녹이고 다진 마늘을 약불에 볶아요.', '면수 3큰술을 넣고 소스를 만들어요.', '삶은 면을 넣고 고루 버무려요.'] },
-    { e: '🍤', t: '새우 볶음밥', d: '냉동 새우로 새우볶음밥', ing: ['새우', '밥', '달걀', '대파'], s: ['새우를 해동해 물기를 빼요.', '팬에 기름을 두르고 새우를 볶아요.', '밥을 넣고 고루 볶아요.', '달걀과 대파를 넣고 마무리해요.'] },
-    { e: '🥘', t: '두부김치', d: '두부 데쳐 김치와 볶아내기', ing: ['두부', '김치', '대파'], s: ['두부를 1cm로 썰어 끓는 물에 2분 데쳐요.', '팬에 김치를 볶아요.', '대파를 넣고 한 번 더 볶아요.', '두부 위에 볶은 김치를 올려요.'] },
-    { e: '🍳', t: '계란후라이', d: '달걀 하나로 든든한 반찬', ing: ['달걀', '소금'], s: ['팬에 기름을 두르고 약불로 데워요.', '달걀을 깨 넣고 흰자가 익을 때까지 두어요.', '소금을 살짝 뿌려요.'] },
-    { e: '🍕', t: '냉동피자', d: '피자 데워서 간단 야식', ing: ['피자'], s: ['피자를 에어프라이어에 놓아요.', '180도에서 10분 구워요.', '가운데까지 뜨거워지면 꺼내요.'] },
-    { e: '🍖', t: '떡갈비 구이', d: '떡갈비 에어프라이 한 접시', ing: ['떡갈비'], s: ['떡갈비를 실온에 5분 두어요.', '에어프라이어 180도에서 10분 구워요.', '뒤집어 5분 더 구워요.'] }
+    { e: '🍚', t: '김치볶음밥', d: '김치와 달걀만 있으면 15분', ing: ['김치', '달걀', '대파', '밥', '참기름'], s: ['김치를 잘게 썰고 대파는 송송 썰어요.', '팬에 기름을 두르고 김치를 2분 볶아요.', '밥을 넣고 김치와 고루 섞어 볶아요.', '한쪽에 달걀을 풀어 익힌 뒤 참기름을 두르고 마무리해요.'], cat: '한식' },
+    { e: '🍲', t: '김치찌개', d: '김치·두부로 끓이는 기본 찌개', ing: ['김치', '돼지고기', '두부', '대파'], s: ['돼지고기를 한입 크기로 썰어 팬에 볶아요.', '김치를 넣고 함께 볶다가 물 3컵을 부어요.', '끓어오르면 두부를 넣고 10분 더 끓여요.', '대파를 넣고 한소끔 끓여 마무리해요.'], cat: '한식' },
+    { e: '🥘', t: '된장찌개', d: '된장 베이스로 채소 넣고 끓이기', ing: ['된장', '두부', '애호박', '감자', '대파'], s: ['무·애호박·감자를 먹기 좋게 썰어요.', '냄비에 물 3컵과 된장 1큰술을 풀어 끓여요.', '감자와 애호박을 먼저 넣고 7분 끓여요.', '두부와 대파를 넣고 3분 더 끓여요.'], cat: '한식' },
+    { e: '🍳', t: '달걀찜', d: '달걀과 소금만으로 부드럽게', ing: ['달걀', '대파', '소금'], s: ['달걀 3개를 풀고 물 1컵과 소금을 넣어 섞어요.', '대파를 잘게 썰어 넣어요.', '냄비에 부어 약불에서 저어가며 익혀요.', '가장자리가 굳으면 뚜껑을 덮고 3분 더 익혀요.'], cat: '한식' },
+    { e: '🍄', t: '버터간장 새송이구이', d: '새송이+버터+간장, 10분', ing: ['새송이', '버터', '간장', '마늘'], s: ['새송이버섯을 0.5cm 두께로 저며요.', '팬에 버터를 녹이고 새송이를 노릇하게 구워요.', '간장과 다진 마늘을 넣고 1분 더 볶아요.', '접시에 담고 남은 소스를 끼얹어요.'], cat: '양식' },
+    { e: '🍝', t: '명란버터파스타', d: '명란젓과 버터로 고소하게', ing: ['명란', '버터', '스파게티면', '마늘'], s: ['끓는 물에 소금을 넣고 면을 8분 삶아요.', '팬에 버터와 다진 마늘을 약불에 볶아요.', '명란젓을 껍질에서 발라 넣고 섞어요.', '삶은 면을 넣고 면수 3큰술로 농도를 맞춰요.'], cat: '양식' },
+    { e: '🍜', t: '매생이국', d: '매생이 넣고 시원하게 끓이기', ing: ['매생이', '마늘', '소금'], s: ['매생이를 물에 살살 헹궈요.', '냄비에 물을 끓이고 다진 마늘을 넣어요.', '매생이를 넣고 3분 끓여요.', '소금으로 간을 맞춰요.'], cat: '한식' },
+    { e: '🥣', t: '무된장국', d: '무를 넣어 달큰한 된장국', ing: ['무', '된장', '대파', '마늘'], s: ['무를 얇게 썰고 대파를 송송 썰어요.', '물 3컵에 된장을 풀어 끓여요.', '무를 넣고 7분 끓여요.', '대파와 다진 마늘을 넣고 한소끔 끓여요.'], cat: '한식' },
+    { e: '🍲', t: '떡국', d: '떡국떡으로 간단히 한 끼', ing: ['떡국떡', '달걀', '대파', '소고기'], s: ['떡국떡을 물에 5분 불려요.', '냄비에 물 3컵을 끓이고 떡을 넣어요.', '떡이 떠오르면 소고기와 대파를 넣어요.', '달걀을 풀어 넣고 한소끔 끓여요.'], cat: '한식' },
+    { e: '🥟', t: '물만두국', d: '물만두 넣고 달걀 풀기', ing: ['물만두', '달걀', '대파'], s: ['물 3컵을 끓여요.', '물만두를 넣고 떠오를 때까지 4분 끓여요.', '대파를 넣고 달걀을 풀어 넣어요.', '소금으로 간을 맞춰요.'], cat: '한식' },
+    { e: '🍜', t: '물냉면', d: '냉면 사리로 시원한 한 그릇', ing: ['냉면', '달걀', '오이', '겨자'], s: ['냉면 사리를 끓는 물에 1분 삶아 찬물에 헹궈요.', '그릇에 냉면 육수를 부어요.', '오이를 채 썰고 달걀을 삶아 반으로 잘라요.', '면을 담고 오이·달걀·겨자를 올려요.'], cat: '한식' },
+    { e: '🍕', t: '또띠아 피자', d: '또띠아 위에 케첩·치즈·햄', ing: ['또띠아', '케첩', '치즈', '햄'], s: ['또띠아에 케첩을 고루 발라요.', '햄과 치즈를 올려요.', '에어프라이어 180도에서 6분 구워요.', '먹기 좋게 잘라요.'], cat: '양식' },
+    { e: '🍜', t: '비빔국수', d: '고추장 양념에 소면 비비기', ing: ['소면', '고추장', '식초', '설탕', '참기름', '오이'], s: ['끓는 물에 소면을 3분 삶아 찬물에 헹궈요.', '고추장·식초·설탕·참기름을 섞어 양념을 만들어요.', '오이를 채 썰어요.', '면에 양념과 오이를 올려 비벼요.'], cat: '한식' },
+    { e: '🍜', t: '라면 한 그릇', d: '달걀·대파 넣고 끓이기', ing: ['라면', '달걀', '대파'], s: ['물 550ml를 끓여요.', '스프와 면을 넣고 3분 끓여요.', '대파를 송송 썰어 넣어요.', '달걀을 풀어 넣고 30초 익혀요.'], cat: '한식' },
+    { e: '🥞', t: '김치전', d: '김치와 부침가루로 노릇하게', ing: ['김치', '부침가루'], s: ['김치를 잘게 썰어요.', '부침가루와 물을 1:1로 섞어 반죽해요.', '김치를 넣고 고루 섞어요.', '팬에 기름을 두르고 앞뒤로 노릇하게 부쳐요.'], cat: '한식' },
+    { e: '🥞', t: '매생이전', d: '매생이 넣은 바삭한 전', ing: ['매생이', '부침가루'], s: ['매생이를 살살 헹궈 물기를 빼요.', '부침가루와 물을 섞어 반죽해요.', '매생이를 넣고 가볍게 섞어요.', '팬에 얇게 펴서 앞뒤로 바삭하게 부쳐요.'], cat: '한식' },
+    { e: '🍄', t: '건버섯 볶음', d: '불린 건버섯을 간장·참기름에', ing: ['건버섯', '간장', '참기름', '마늘'], s: ['건버섯을 미지근한 물에 20분 불려요.', '물기를 꼭 짜고 먹기 좋게 썰어요.', '팬에 기름을 두르고 마늘을 볶아요.', '건버섯을 넣고 간장·참기름으로 간해 볶아요.'], cat: '한식' },
+    { e: '🥗', t: '단호박 샐러드', d: '찐 단호박에 요거트 드레싱', ing: ['단호박', '요거트', '아몬드가루'], s: ['단호박을 깍둑 썰어 전자레인지에 5분 익혀요.', '한김 식혀요.', '요거트에 아몬드가루를 섞어 드레싱을 만들어요.', '단호박에 드레싱을 올려요.'], cat: '건강/간편' },
+    { e: '🫐', t: '블루베리 요거트볼', d: '냉동 블루베리로 간단 디저트', ing: ['블루베리', '요거트'], s: ['냉동 블루베리를 살짝 녹여요.', '그릇에 요거트를 담아요.', '블루베리를 올리고 가볍게 섞어요.'], cat: '건강/간편' },
+    { e: '🧀', t: '치즈스틱 에어프라이', d: '냉동 치즈스틱 180도 8분', ing: ['치즈스틱'], s: ['치즈스틱을 에어프라이어에 놓아요.', '180도에서 8분 구워요.', '뒤집어 3분 더 구워요.'], cat: '건강/간편' },
+    { e: '🍙', t: '참기름 주먹밥', d: '밥에 참기름·깨 넣고 동글동글', ing: ['밥', '김', '참기름', '깨'], s: ['따뜻한 밥에 참기름과 깨를 넣어 섞어요.', '김을 잘게 부숴 넣어요.', '한입 크기로 동글게 뭉쳐요.'], cat: '한식' },
+    { e: '🔥', t: '불닭볶음면', d: '불닭소스로 매콤하게', ing: ['라면', '불닭소스', '달걀'], s: ['물 500ml를 끓여 면을 4분 삶아요.', '물을 8숟갈 남기고 따라내요.', '불닭소스를 넣고 30초 볶아요.', '달걀 프라이를 올려요.'], cat: '한식' },
+    { e: '🍝', t: '버터 마늘 파스타', d: '마늘·버터만으로 기본 파스타', ing: ['스파게티면', '마늘', '버터'], s: ['끓는 물에 소금을 넣고 면을 8분 삶아요.', '팬에 버터를 녹이고 다진 마늘을 약불에 볶아요.', '면수 3큰술을 넣고 소스를 만들어요.', '삶은 면을 넣고 고루 버무려요.'], cat: '양식' },
+    { e: '🍤', t: '새우 볶음밥', d: '냉동 새우로 새우볶음밥', ing: ['새우', '밥', '달걀', '대파'], s: ['새우를 해동해 물기를 빼요.', '팬에 기름을 두르고 새우를 볶아요.', '밥을 넣고 고루 볶아요.', '달걀과 대파를 넣고 마무리해요.'], cat: '한식' },
+    { e: '🥘', t: '두부김치', d: '두부 데쳐 김치와 볶아내기', ing: ['두부', '김치', '대파'], s: ['두부를 1cm로 썰어 끓는 물에 2분 데쳐요.', '팬에 김치를 볶아요.', '대파를 넣고 한 번 더 볶아요.', '두부 위에 볶은 김치를 올려요.'], cat: '한식' },
+    { e: '🍳', t: '계란후라이', d: '달걀 하나로 든든한 반찬', ing: ['달걀', '소금'], s: ['팬에 기름을 두르고 약불로 데워요.', '달걀을 깨 넣고 흰자가 익을 때까지 두어요.', '소금을 살짝 뿌려요.'], cat: '건강/간편' },
+    { e: '🍕', t: '냉동피자', d: '피자 데워서 간단 야식', ing: ['피자'], s: ['피자를 에어프라이어에 놓아요.', '180도에서 10분 구워요.', '가운데까지 뜨거워지면 꺼내요.'], cat: '양식' },
+    { e: '🍖', t: '떡갈비 구이', d: '떡갈비 에어프라이 한 접시', ing: ['떡갈비'], s: ['떡갈비를 실온에 5분 두어요.', '에어프라이어 180도에서 10분 구워요.', '뒤집어 5분 더 구워요.'], cat: '한식' }
   ];
+
+  /* 레시피 카테고리 — 필터 칩과 AI 응답이 함께 쓰는 고정 목록 */
+  var CATEGORIES = ['한식', '양식', '중식', '일식', '건강/간편'];
+  var CAT_CLS = { '한식': 'k', '양식': 'w', '중식': 'c', '일식': 'j', '건강/간편': 'h' };
+  /* 제목·재료에 나오는 낱말로 카테고리를 추정한다(카테고리가 없는 옛 레시피용 안전장치). */
+  var CAT_HINTS = [
+    ['일식', ['스시', '초밥', '우동', '소바', '라멘', '돈코츠', '규동', '가츠동', '오야코동', '가라아게', '데리야끼', '데리야키', '텐동', '다코야키', '오니기리', '미소시루', '사케동', '연어덮밥', '장어덮밥', '덮밥', '스키야키', '카레라이스', '가츠']],
+    ['중식', ['짜장', '짬뽕', '탕수육', '마파두부', '깐풍', '팔보채', '양꼬치', '훠궈', '딤섬', '마라', '꿔바로우', '완탕', '춘권', '중화', '샤브샤브', '볶음면']],
+    ['양식', ['파스타', '스파게티', '피자', '리조또', '리조토', '스테이크', '오믈렛', '오무라이스', '샌드위치', '토스트', '버거', '그라탕', '라자냐', '또띠아', '타코', '브리또', '카르보나라', '알리오', '뇨끼', '감바스', '커리']],
+    ['건강/간편', ['샐러드', '요거트', '스무디', '그릭', '닭가슴살', '에어프라이', '전자레인지', '오트밀', '시리얼', '견과', '단백질', '곤약', '포케', '컵밥', '두유']],
+    ['한식', ['김치', '된장', '고추장', '찌개', '국', '볶음밥', '비빔', '떡', '죽', '찜', '구이', '조림', '무침', '나물', '불고기', '갈비', '주먹밥', '계란말이', '김밥', '냉면', '라면', '수제비', '칼국수', '만두', '꼬치', '순두부', '장아찌']]
+  ];
+  function normCategory(v) {
+    var s = String(v == null ? '' : v).replace(/\s+/g, '').trim();
+    if (!s) return '';
+    if (CATEGORIES.indexOf(s) >= 0) return s;
+    var flat = s.replace(/\//g, '');
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].replace(/\//g, '') === flat) return CATEGORIES[i];
+    }
+    var alias = { 'korean': '한식', 'western': '양식', 'chinese': '중식', 'japanese': '일식', 'healthy': '건강/간편', 'simple': '건강/간편', '간편': '건강/간편', '건강': '건강/간편', '한식요리': '한식', '양식요리': '양식', '중식요리': '중식', '일식요리': '일식' };
+    return alias[s.toLowerCase()] || '';
+  }
+  function guessCategory(title, ings) {
+    var hay = String(title || '') + ' ' + (ings && ings.length ? ings.join(' ') : '');
+    for (var i = 0; i < CAT_HINTS.length; i++) {
+      var hints = CAT_HINTS[i][1];
+      for (var j = 0; j < hints.length; j++) {
+        if (hay.indexOf(hints[j]) >= 0) return CAT_HINTS[i][0];
+      }
+    }
+    return '한식';
+  }
+  function normRecipeSort(v) { return (v === 'time' || v === 'name') ? v : 'new'; }
 
   var PROMPT_RECEIPT = '너는 한국 가정의 냉장고 관리 도우미야. 첨부한 영수증 또는 장보기 목록 사진에서 구매한 식재료를 읽어 정리해줘.\n' +
     '규칙: 1) 식재료·식품만 (봉투값·할인·적립·비식품 제외) 2) 수량과 단위는 사진에서 확인되면 채우고 모르면 수량 1, 단위 "개" 3) 가격은 그 항목의 금액(원, 숫자만), 모르면 0 4) 보관 구분은 반드시 냉동/냉장/실온/소스/양념 중 하나 — 고기·해산물·유제품·채소·두부·김치는 냉장, 만두·아이스크림·튀김·볶음밥·냉동밥은 냉동, 라면·면·쌀·가루·통조림·견과는 실온, 소스·잼·양념·기름·장류는 소스/양념 5) 구매일은 영수증에 적힌 날짜(YYYY-MM-DD), 없으면 오늘 6) 이름은 한국어로 짧게.';
@@ -857,10 +918,11 @@
           properties: {
             title: { type: 'STRING' },
             minutes: { type: 'NUMBER' },
+            category: { type: 'STRING', enum: CATEGORIES },
             ingredients: { type: 'ARRAY', items: { type: 'STRING' } },
             steps: { type: 'ARRAY', items: { type: 'STRING' } }
           },
-          required: ['title', 'ingredients', 'steps']
+          required: ['title', 'category', 'ingredients', 'steps']
         }
       }
     },
@@ -887,6 +949,7 @@
   var ui = {
     search: '', storages: { frozen: true, fridge: true, room: true, sauce: true },
     status: 'in', sort: 'new', recipeAll: false, openRecipe: {}, weekStart: '',
+    recipeCat: 'all', recipeSort: normRecipeSort(lsGet(RECIPE_SORT_KEY)),
     itemEdit: '', mealDay: '', rec: null, keyMsg: '', aiBusy: false, gateMode: '', shopOpen: false,
     tab: '', watchOpen: false, watchEdit: '', linkKey: '', linkTitle: '',
     histY: 0, histM: 0, histSel: '', editSections: false
@@ -1089,6 +1152,7 @@
       title: title,
       emoji: String(r.emoji || '🍽').slice(0, 4),
       minutes: Math.max(0, Math.round(num(r.minutes))),
+      category: normCategory(r.category) || guessCategory(title, ings),
       ingredients: ings,
       steps: st,
       source: r.source === 'ai' ? 'ai' : 'builtin',
@@ -1113,6 +1177,7 @@
       seen[recipeKey(r.t)] = 1;
       list.push({
         id: 'rb_' + (i + 1), title: r.t, emoji: r.e, minutes: 0,
+        category: normCategory(r.cat) || guessCategory(r.t, r.ing),
         ingredients: r.ing.slice(0), steps: (r.s || []).slice(0),
         source: 'builtin', createdAt: now - (RECIPES.length - i) * 1000
       });
@@ -2075,6 +2140,7 @@
         id: String(r.id || ('k_' + i)),
         title: r.title,
         emoji: r.emoji || '🍽',
+        category: normCategory(r.category) || guessCategory(r.title, r.ingredients),
         ings: r.ingredients,
         steps: r.steps || [],
         minutes: num(r.minutes),
@@ -2082,14 +2148,41 @@
         createdAt: num(r.createdAt)
       });
     }
-    /* AI로 새로 담은 요리를 먼저(나중에 담은 것부터), 그다음 기본 요리 순서대로 */
-    out.sort(function (a, b) {
-      if (a.ai !== b.ai) return a.ai ? -1 : 1;
-      if (a.ai && a.pos !== b.pos) return b.pos - a.pos;
-      return 0;
-    });
     return out;
   }
+  /* 카테고리별 100% 요리 개수 (필터 칩에 표시) */
+  function recipeCatCounts(list) {
+    var out = { all: list.length }, i;
+    for (i = 0; i < CATEGORIES.length; i++) out[CATEGORIES[i]] = 0;
+    for (i = 0; i < list.length; i++) {
+      var c = normCategory(list[i].category) || '한식';
+      if (out[c] == null) out[c] = 0;
+      out[c]++;
+    }
+    return out;
+  }
+  function sortRecipes(list, mode) {
+    var out = list.slice();
+    if (mode === 'time') {
+      /* 조리시간 짧은 순 — 시간을 모르는 요리는 뒤로 */
+      out.sort(function (a, b) {
+        var am = a.minutes > 0 ? a.minutes : 9999, bm = b.minutes > 0 ? b.minutes : 9999;
+        if (am !== bm) return am - bm;
+        return String(a.title).localeCompare(String(b.title), 'ko');
+      });
+    } else if (mode === 'name') {
+      out.sort(function (a, b) { return String(a.title).localeCompare(String(b.title), 'ko'); });
+    } else {
+      /* 최신순(기본): AI로 새로 담은 요리를 최근 것부터, 그다음 기본 요리 순서대로
+         — 도서관은 뒤에 붙이는 방식이라 배열 순서가 곧 담은 순서다(기기 시계 차이에도 안전). */
+      out.sort(function (a, b) {
+        if (a.ai !== b.ai) return a.ai ? -1 : 1;
+        return b.pos - a.pos;
+      });
+    }
+    return out;
+  }
+  function recipeCatLabel(c) { return c === 'all' ? '전체' : c; }
 
   function recipeCardHtml(it) {
     var key = it.id || (it.kind + ':' + it.title);
@@ -2104,7 +2197,8 @@
     return '<div class="rc' + (open ? ' open' : '') + '"' + (canOpen ? ' role="button" tabindex="0" data-act="recipe-expand" aria-expanded="' + (open ? 'true' : 'false') + '"' : '') + ' data-key="' + esc(key) + '">' +
       '<div class="rc-top">' +
         '<span class="rc-emoji" aria-hidden="true">' + esc(it.emoji) + '</span>' +
-        '<b class="rc-name">' + esc(it.title) + '</b>' +
+        '<b class="rc-name" title="' + esc(it.title) + '">' + esc(it.title) + '</b>' +
+        '<span class="rc-cat ' + esc(CAT_CLS[it.category] || '') + '">' + esc(it.category || '한식') + '</span>' +
         '<span class="rc-badge' + (it.ai ? ' ai' : '') + '">' + (it.ai ? 'AI 100%' : '100%') + '</span>' +
         (canOpen ? '<span class="rc-caret" aria-hidden="true">▼</span>' : '') +
       '</div>' +
@@ -2125,9 +2219,34 @@
     if (on) ui.openRecipe[key] = 1; else delete ui.openRecipe[key];
   }
 
+  /* 카테고리 필터 칩 + 정렬 선택 — 카테고리마다 지금 100% 만들 수 있는 개수를 함께 보여준다. */
+  function recipeToolsHtml(counts, filter) {
+    var chips = '', cols = [{ k: 'all', n: '전체' }], i;
+    for (i = 0; i < CATEGORIES.length; i++) cols.push({ k: CATEGORIES[i], n: CATEGORIES[i] });
+    for (i = 0; i < cols.length; i++) {
+      var ck = cols[i].k, cn = counts[ck] || 0, on = filter === ck;
+      chips += '<button class="rc-chip' + (on ? ' on' : '') + (cn ? '' : ' zero') + '" type="button" data-act="recipe-cat" data-cat="' + esc(ck) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        esc(cols[i].n) + '<b>' + cn + '</b></button>';
+    }
+    var now = normRecipeSort(ui.recipeSort);
+    var sorts = [['new', '최신순'], ['time', '조리시간 짧은 순'], ['name', '이름순']];
+    var opts = '';
+    for (i = 0; i < sorts.length; i++) {
+      opts += '<option value="' + sorts[i][0] + '"' + (now === sorts[i][0] ? ' selected' : '') + '>' + sorts[i][1] + '</option>';
+    }
+    return '<div class="rc-tools">' +
+      '<div class="rc-cats" role="group" aria-label="레시피 카테고리">' + chips + '</div>' +
+      '<select class="rc-sort" data-sel="recipe-sort" aria-label="레시피 정렬">' + opts + '</select>' +
+      '</div>';
+  }
+
   function renderRecipes() {
     var sec = $('recipeSec'); if (!sec) return;
-    var list = fullRecipes();
+    var all = fullRecipes();
+    var counts = recipeCatCounts(all);
+    var filter = (ui.recipeCat === 'all' || CATEGORIES.indexOf(ui.recipeCat) >= 0) ? ui.recipeCat : 'all';
+    var picked = filter === 'all' ? all : all.filter(function (r) { return (r.category || '한식') === filter; });
+    var list = sortRecipes(picked, normRecipeSort(ui.recipeSort));
     var shown = ui.recipeAll ? list : list.slice(0, 6);
     var cards = '';
     for (var i = 0; i < shown.length; i++) cards += recipeCardHtml(shown[i]);
@@ -2144,16 +2263,22 @@
     }
     var loading = ui.aiBusy ? '<div class="rc-loading"><span class="ring"></span><span>지금 있는 재료로 AI가 레시피를 고르는 중…</span></div>' : '';
     var body = list.length ? '<div class="recipe-grid">' + cards + '</div>' + more : '';
+    var tools = all.length ? recipeToolsHtml(counts, filter) : '';
     var libReady = !!(state.recipes && (state.recipes.updatedAt || (state.recipes.recipes || []).length));
     var empty = '';
     if (!list.length && !ui.aiBusy) {
-      empty = libReady
-        ? '<p class="empty rc-empty">지금 있는 재료로 100% 만들 수 있는 요리가 아직 없어요.<br>재료를 채운 뒤 ✨ 업데이트를 눌러 보세요.</p>'
-        : '<p class="empty rc-empty">레시피를 불러오는 중…</p>';
+      if (filter !== 'all') {
+        empty = '<p class="empty rc-empty">' + esc(filter) + ' 요리 중 지금 재료로 100% 만들 수 있는 요리가 없어요.<br>' +
+          '<button class="link-btn" type="button" data-act="recipe-cat" data-cat="all">전체 레시피 보기</button></p>';
+      } else {
+        empty = libReady
+          ? '<p class="empty rc-empty">지금 있는 재료로 100% 만들 수 있는 요리가 아직 없어요.<br>재료를 채운 뒤 ✨ 업데이트를 눌러 보세요.</p>'
+          : '<p class="empty rc-empty">레시피를 불러오는 중…</p>';
+      }
     }
 
     sec.innerHTML = '<div class="card-head"><h2>' + esc(secTitle('recipe')) + (list.length ? ' <span class="count">' + list.length + '</span>' : '') + '</h2>' + btn + (atTxt ? '<span class="rc-updated">' + esc(atTxt) + '</span>' : '') + '</div>' +
-      loading + body + empty;
+      tools + loading + body + empty;
   }
 
   /* ---------- 주간 식단 ---------- */
@@ -3153,8 +3278,9 @@
         (savedTitles.length ? '이미 저장된 요리(중복 제외): ' + savedTitles.join(', ') + '\n' : '') +
         '추천 방향: 요즘 유튜브·SNS에서 핫한 트렌디한 요리(원팬·초간단 인기 집밥)와 영양 균형 잡힌 건강식(고단백·채소·저당·저염 위주)을 골고루 섞어줘.\n' +
         '조건: 1) ingredients에는 보유 재료 이름만 넣고, 보유하지 않은 재료는 절대 넣지 마. (물·소금·식용유·후추는 집에 늘 있는 기본 양념이라 예외로 넣어도 됨) ' +
-        '2) 조리 30분 이내 3) 아이도 같이 먹을 수 있는 순한 맛 위주 4) title, minutes(숫자), ingredients(재료 배열), steps(조리 순서 3~5단계 배열)를 채우기 ' +
-        '5) 같은 요리를 중복해서 넣지 말고, 이미 저장된 요리와 이름이 겹치거나 사실상 같은 요리는 빼기.';
+        '2) 조리 30분 이내 3) 아이도 같이 먹을 수 있는 순한 맛 위주 4) title, minutes(숫자), category, ingredients(재료 배열), steps(조리 순서 3~5단계 배열)를 채우기 ' +
+        '5) category는 한식·양식·중식·일식·건강/간편 중 하나로 — 집밥·찌개·볶음류는 한식, 파스타·피자·구이·토스트는 양식, 짜장·짬뽕·마라·탕수육은 중식, 초밥·우동·덮밥·돈가스는 일식, 샐러드·요거트·가벼운 한 그릇은 건강/간편 ' +
+        '6) 같은 요리를 중복해서 넣지 말고, 이미 저장된 요리와 이름이 겹치거나 사실상 같은 요리는 빼기.';
       var out = await geminiJSON([{ text: prompt }], SCHEMA_RECIPES);
       var list = (out && out.recipes) || [];
       var clean = [], stockNow = stockNames(), i;
@@ -3167,6 +3293,7 @@
         clean.push({
           title: String(r.title).slice(0, 60),
           minutes: Math.max(0, Math.round(num(r.minutes))),
+          category: normCategory(r.category) || guessCategory(r.title, ings),
           ingredients: ings,
           steps: (r.steps || []).slice(0, 8).map(function (x) { return String(x).slice(0, 200); })
         });
@@ -3184,6 +3311,7 @@
         have[key] = 1;
         fresh.push({
           id: uid('ra'), title: clean[i].title, emoji: '✨', minutes: clean[i].minutes,
+          category: clean[i].category,
           ingredients: clean[i].ingredients, steps: clean[i].steps,
           source: 'ai', createdAt: now + i
         });
@@ -3559,6 +3687,13 @@
       return;
     }
     if (act === 'recipe-toggle') { ui.recipeAll = !ui.recipeAll; renderRecipes(); return; }
+    if (act === 'recipe-cat') {
+      var cat = el.getAttribute('data-cat') || 'all';
+      ui.recipeCat = (cat === 'all' || CATEGORIES.indexOf(cat) >= 0) ? cat : 'all';
+      ui.recipeAll = false;
+      renderRecipes();
+      return;
+    }
     if (act === 'recipe-refresh') { refreshAI(); return; }
     if (act === 'recipe-expand') {
       /* 카드 안의 링크·버튼을 누를 때는 접기/펼치기를 하지 않아요. */
@@ -3747,6 +3882,12 @@
       return;
     }
     if (t.id === 'sortSel') { ui.sort = t.value; renderTools(); renderInventory(); return; }
+    if (t.getAttribute && t.getAttribute('data-sel') === 'recipe-sort') {
+      ui.recipeSort = normRecipeSort(t.value);
+      lsSet(RECIPE_SORT_KEY, ui.recipeSort);
+      renderRecipes();
+      return;
+    }
     if (t.id === 'receiptFile' && t.files && t.files[0]) {
       var f = t.files[0];
       analyzeReceipt(f);
