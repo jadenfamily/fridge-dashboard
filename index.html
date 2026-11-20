@@ -229,6 +229,13 @@
   .use-btn{ background:#eefaf3; color:#0f7a55; }
   .item.out .use-btn{ background:#eef5ff; color:#2f6fb5; }
   .restore{ background:#eef5ff; color:#2f6fb5; }
+  /* ---------- 남은 양(%) 게이지 ---------- */
+  .it-pct{ display:flex; align-items:center; gap:5px; min-width:0; margin:1px 0 1px; }
+  .pct-bar{ position:relative; flex:1 1 auto; min-width:0; height:7px; border-radius:999px; background:#eef1ea; overflow:hidden; }
+  .pct-bar i{ display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#45d6a8,#12a97e); transition:width .18s ease; }
+  .item.pct-low .pct-bar i{ background:linear-gradient(90deg,#ffc45c,#f08a00); }
+  .pct-tip{ flex:0 0 auto; font-size:9.5px; font-weight:900; color:#b0610b; white-space:nowrap; letter-spacing:-.01em; }
+  .it-qty.pctq .qv{ min-width:40px; }
 
   /* ---------- 레시피 ---------- */
   .recipes .card-head h2 .count{ min-width:20px; height:20px; padding:0 6px; font-size:11.5px; background:#eefaf3; color:#0f7a55; vertical-align:0; }
@@ -371,6 +378,22 @@
   .form label.chk input{ width:22px; height:22px; min-height:0; padding:0; margin:0; accent-color:#5ac8fa; }
   .form-msg{ min-height:16px; margin:0; font-size:12px; font-weight:800; color:#c6415a; }
   .form-msg.ok{ color:#12805c; }
+  .uchips{ display:flex; flex-wrap:wrap; gap:5px; margin:-2px 0 0; }
+  .uchip{
+    min-height:34px; padding:0 11px; border:1.5px solid #e6dccf; border-radius:999px; background:#fffdf9;
+    color:#6d6484; font-family:inherit; font-size:12.5px; font-weight:900; cursor:pointer; touch-action:manipulation;
+  }
+  .uchip.on{ background:#e8f5ff; border-color:#a8dbff; color:#125e86; }
+  .uchip:active{ transform:scale(.97); }
+  .pct-presets{ display:flex; align-items:center; gap:5px; margin:0; }
+  .pct-presets[hidden]{ display:none; }
+  .pct-presets > span{ flex:0 0 auto; font-size:11px; font-weight:900; color:#8a7f70; }
+  .pct-presets button{
+    flex:1 1 0; min-height:38px; border:1.5px solid #e6dccf; border-radius:11px; background:#fffdf9;
+    color:#0f7a55; font-family:inherit; font-size:12.5px; font-weight:900; cursor:pointer; touch-action:manipulation;
+  }
+  .pct-presets button.on{ background:#eefaf3; border-color:#b9e6d3; }
+  .pct-presets button:active{ transform:scale(.97); }
 
   /* ---------- 영수증 ---------- */
   .rec-drop{ text-align:center; font-size:52px; line-height:1; padding:16px 8px 6px; }
@@ -979,6 +1002,12 @@
   function isYmd(s) { return !!parseYmd(s); }
   function fmtWon(n) { return Number(num(n)).toLocaleString('ko-KR'); }
   function fmtQty(q) { var n = num(q); return (Math.round(n * 100) / 100).toString(); }
+  /* ---------- 남은 양(%) 단위 ---------- */
+  function isPctUnit(u) { return String(u == null ? '' : u).trim() === '%'; }
+  function pctClamp(v) { var n = Math.round(num(v)); return n < 0 ? 0 : (n > 100 ? 100 : n); }
+  function qtyClamp(q, u) { return isPctUnit(u) ? pctClamp(q) : Math.max(0, num(q)); }
+  function qtyStep(u) { return isPctUnit(u) ? 25 : 1; }
+  function pctMin(it) { var m = num(it && it.minQty); return pctClamp(m > 0 ? m : 25); }
   function daysAgo(s) {
     var d = parseYmd(s);
     if (!d) return '';
@@ -1027,18 +1056,19 @@
   /* ============ 데이터 정규화 ============ */
   function makeItem(o) {
     o = o || {};
-    var qty = num(o.qty);
+    var unit = String(o.unit || '개').slice(0, 6).trim() || '개';
+    var qty = qtyClamp(o.qty, unit);
     var status = o.status === 'out' ? 'out' : (qty > 0 ? 'in' : 'out');
     return {
       id: o.id || uid('it'),
       name: String(o.name || '').trim().slice(0, 40),
-      qty: Math.max(0, qty),
-      unit: String(o.unit || '개').slice(0, 6),
+      qty: qty,
+      unit: unit,
       storage: normStorage(o.storage),
       boughtAt: isYmd(o.boughtAt) ? o.boughtAt : '',
       price: Math.max(0, Math.round(num(o.price))),
       staple: !!o.staple,
-      minQty: Math.max(1, num(o.minQty) || 1),
+      minQty: isPctUnit(unit) ? Math.max(1, pctMin(o)) : Math.max(1, num(o.minQty) || 1),
       status: status,
       note: String(o.note || '').slice(0, 60),
       category: String(o.category || '').slice(0, 20),
@@ -1664,7 +1694,9 @@
   function inStock(items) { return items.filter(function (i) { return i.status === 'in' && num(i.qty) > 0; }); }
   function needsShopping() {
     return state.inventory.items.filter(function (it) {
-      return it.staple && it.alert !== false && (it.status !== 'in' || num(it.qty) < (num(it.minQty) || 1));
+      if (!it.staple || it.alert === false) return false;
+      if (it.status !== 'in') return true;
+      return isPctUnit(it.unit) ? num(it.qty) <= pctMin(it) : num(it.qty) < (num(it.minQty) || 1);
     });
   }
   function watchItems() {
@@ -1683,11 +1715,11 @@
       if (it.status === 'out' && norm(it.name) === n) { hit = it; break; }
     }
     if (hit) {
-      hit.qty = Math.max(0, num(hit.qty)) + Math.max(0, num(data.qty));
+      if (data.unit) hit.unit = data.unit;
+      hit.qty = qtyClamp(Math.max(0, num(hit.qty)) + Math.max(0, num(data.qty)), hit.unit);
       hit.status = hit.qty > 0 ? 'in' : 'out';
       if (isYmd(data.boughtAt)) hit.boughtAt = data.boughtAt;
       if (num(data.price) > 0) hit.price = Math.round(num(data.price));
-      if (data.unit) hit.unit = data.unit;
       if (data.staple) hit.staple = true;
       hit.updatedAt = Date.now();
       return hit;
@@ -1948,8 +1980,11 @@
     var html = '';
     for (var i = 0; i < list.length; i++) {
       var it = list[i];
+      var pct = isPctUnit(it.unit) ? pctClamp(it.qty) : -1;
+      var pctLow = pct >= 0 && it.status === 'in' && pct <= 25;
       var meta = [];
       meta.push(it.boughtAt ? (it.boughtAt.slice(5).replace('-', '/') + ' (' + daysAgo(it.boughtAt) + ')') : '구매일 없음');
+      if (pct >= 0) meta.push('남은 양 ' + pct + '%');
       if (it.price > 0) meta.push(fmtWon(it.price) + '원');
       if (it.staple) meta.push('최소 ' + fmtQty(it.minQty) + it.unit);
       if (it.note) meta.push(it.note);
@@ -1961,7 +1996,7 @@
           '<span class="qv">' + fmtQty(it.qty) + esc(it.unit) + '</span>' +
           '<button class="qbtn" type="button" data-act="qty-up" data-id="' + esc(it.id) + '" aria-label="수량 늘리기">+</button>';
       }
-      html += '<div class="item' + (it.status === 'out' ? ' out' : '') + '" data-id="' + esc(it.id) + '" title="' + esc(meta.join(' · ')) + '">' +
+      html += '<div class="item' + (it.status === 'out' ? ' out' : '') + (pct >= 0 ? ' pct-item' : '') + (pctLow ? ' pct-low' : '') + '" data-id="' + esc(it.id) + '" title="' + esc(meta.join(' · ')) + '">' +
         '<div class="it-l1">' +
           '<span class="st-badge ' + ST_CLS[it.storage] + '">' + ST_LABEL[it.storage] + '</span>' +
           '<b class="it-name">' + esc(it.name) + '</b>' +
@@ -1970,8 +2005,12 @@
           '<span class="it-date">' + esc(it.boughtAt ? it.boughtAt.slice(5).replace('-', '/') : '') + '</span>' +
           (it.price > 0 ? '<span class="it-price">' + fmtWon(it.price) + '원</span>' : '') +
         '</div>' +
+        (pct >= 0 ? '<div class="it-pct">' +
+          '<div class="pct-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="남은 양 ' + pct + '%"><i style="width:' + pct + '%"></i></div>' +
+          (pctLow ? '<span class="pct-tip">거의 다 씀</span>' : '') +
+        '</div>' : '') +
         '<div class="it-l2">' +
-          '<div class="it-qty">' + qtyHtml + '</div>' +
+          '<div class="it-qty' + (pct >= 0 ? ' pctq' : '') + '">' + qtyHtml + '</div>' +
           (ui.readOnly
             ? '<span class="it-date" style="margin-left:auto">' + esc(it.staple ? '최소 ' + fmtQty(it.minQty) + it.unit : '') + '</span>'
             : '<div class="it-acts">' +
@@ -2739,7 +2778,7 @@
       '<datalist id="wNames">' + opts + '</datalist>' +
       '<div class="frow">' +
         '<label>보관 구분<select id="wStorage">' + stOpts + '</select></label>' +
-        '<label>최소 수량<input id="wMin" type="number" min="1" step="1" inputmode="numeric" value="' + esc(it ? fmtQty(it.minQty) : '1') + '"></label>' +
+        '<label>' + (it && isPctUnit(it.unit) ? '최소 남은 양 (%)' : '최소 수량') + '<input id="wMin" type="number" min="1"' + (it && isPctUnit(it.unit) ? ' max="100" step="5"' : ' step="1"') + ' inputmode="numeric" value="' + esc(it ? fmtQty(it.minQty) : '1') + '"></label>' +
       '</div>' +
       '<label class="chk"><input type="checkbox" id="wAlert"' + (on ? ' checked' : '') + '> 알림 켜기 (기준 이하로 떨어지면 장보기 목록에 올려요)</label>' +
       '<p class="form-msg" id="watchMsg"></p>' +
@@ -2753,7 +2792,10 @@
   function saveWatch() {
     var name = fieldVal('wName').trim();
     if (!name) { var mm = $('watchMsg'); if (mm) mm.textContent = '재료 이름을 넣어 주세요.'; return; }
-    var minQty = Math.max(1, num(fieldVal('wMin')) || 1);
+    var wEdit = ui.watchEdit ? findItem(ui.watchEdit) : null;
+    var minQty = (wEdit && isPctUnit(wEdit.unit))
+      ? Math.max(1, pctMin({ minQty: fieldVal('wMin') }))
+      : Math.max(1, num(fieldVal('wMin')) || 1);
     var storage = normStorage(fieldVal('wStorage'));
     var on = $('wAlert') ? !!$('wAlert').checked : true;
     var it = ui.watchEdit ? findItem(ui.watchEdit) : null;
@@ -2889,6 +2931,7 @@
   }
 
   /* ---------- 식재료 폼 ---------- */
+  var UNIT_PRESETS = ['개', '봉', '팩', '통', '병', 'g', 'kg', 'ml', 'L', '%'];
   function openItemModal(id) {
     ui.itemEdit = id || '';
     var it = id ? findItem(id) : null;
@@ -2897,48 +2940,119 @@
     for (var i = 0; i < STORAGES.length; i++) {
       stOpts += '<option value="' + STORAGES[i].key + '"' + ((it ? it.storage : 'fridge') === STORAGES[i].key ? ' selected' : '') + '>' + STORAGES[i].emoji + ' ' + STORAGES[i].label + '</option>';
     }
+    var unit = it ? String(it.unit || '개') : '개';
+    var uChips = '';
+    for (var u = 0; u < UNIT_PRESETS.length; u++) {
+      var uOn = UNIT_PRESETS[u] === unit;
+      uChips += '<button class="uchip' + (uOn ? ' on' : '') + '" type="button" data-act="unit-pick" data-unit="' + esc(UNIT_PRESETS[u]) + '" aria-pressed="' + (uOn ? 'true' : 'false') + '">' + esc(UNIT_PRESETS[u]) + '</button>';
+    }
+    var pctPresets = '';
+    var PCTS = [100, 75, 50, 25];
+    for (var p = 0; p < PCTS.length; p++) {
+      pctPresets += '<button type="button" data-act="pct-pick" data-pct="' + PCTS[p] + '">' + PCTS[p] + '%</button>';
+    }
     $('itemBody').innerHTML = '<div class="form">' +
       '<label>이름<input id="itName" maxlength="40" placeholder="예: 두부" value="' + esc(it ? it.name : '') + '"></label>' +
       '<div class="frow">' +
-        '<label>수량<input id="itQty" type="number" min="0" step="0.5" inputmode="decimal" value="' + esc(it ? fmtQty(it.qty) : '1') + '"></label>' +
-        '<label>단위<input id="itUnit" maxlength="6" value="' + esc(it ? it.unit : '개') + '"></label>' +
+        '<label><span id="itQtyLbl">' + (isPctUnit(unit) ? '남은 양 (%)' : '수량') + '</span><input id="itQty" type="number" min="0" step="' + (isPctUnit(unit) ? '25' : '0.5') + '"' + (isPctUnit(unit) ? ' max="100" inputmode="numeric"' : ' inputmode="decimal"') + ' value="' + esc(it ? fmtQty(it.qty) : (isPctUnit(unit) ? '100' : '1')) + '"></label>' +
+        '<label>단위<input id="itUnit" maxlength="6" list="unitList" autocomplete="off" value="' + esc(unit) + '"></label>' +
       '</div>' +
+      '<datalist id="unitList">' +
+        '<option value="개"></option><option value="봉"></option><option value="팩"></option><option value="통"></option>' +
+        '<option value="병"></option><option value="g"></option><option value="kg"></option><option value="ml"></option>' +
+        '<option value="L"></option><option value="모"></option><option value="대"></option><option value="캔"></option>' +
+        '<option value="조각"></option><option value="인분"></option><option value="%"></option>' +
+      '</datalist>' +
+      '<div class="uchips" id="itUnitChips" role="group" aria-label="단위 빠른 선택">' + uChips + '</div>' +
+      '<div class="pct-presets" id="itPctPresets"' + (isPctUnit(unit) ? '' : ' hidden') + '><span>남은 양</span>' + pctPresets + '</div>' +
       '<div class="frow">' +
         '<label>보관 구분<select id="itStorage">' + stOpts + '</select></label>' +
         '<label>구매일<input id="itDate" type="date" value="' + esc(it && it.boughtAt ? it.boughtAt : todayStr()) + '"></label>' +
       '</div>' +
       '<label>가격 (선택, 원)<input id="itPrice" type="number" min="0" step="100" inputmode="numeric" placeholder="가계부에 이어져요" value="' + esc(it && it.price ? it.price : '') + '"></label>' +
       '<label class="chk"><input type="checkbox" id="itStaple"' + (it && it.staple ? ' checked' : '') + '> 자주 쓰는 필수 재료(단골)로 표시</label>' +
-      '<label>단골 최소 수량<input id="itMin" type="number" min="1" step="1" inputmode="numeric" value="' + esc(it ? it.minQty : '1') + '"></label>' +
+      '<label><span id="itMinLbl">' + (isPctUnit(unit) ? '단골 기준 남은 양 (%)' : '단골 최소 수량') + '</span><input id="itMin" type="number" min="1"' + (isPctUnit(unit) ? ' max="100" step="5"' : ' step="1"') + ' inputmode="numeric" value="' + esc(it ? fmtQty(it.minQty) : '1') + '"></label>' +
       '<label>메모 (선택)<input id="itNote" maxlength="60" placeholder="예: 유통기한 11/30" value="' + esc(it ? it.note : '') + '"></label>' +
       '<p class="form-msg" id="itemMsg"></p>' +
       '<button class="btn wide" type="button" data-act="item-save">저장</button>' +
       '</div>';
     showModal('itemModal');
+    syncPercentUi();
     try { $('itName').focus(); } catch (e) { /* 무시 */ }
+  }
+
+  /* 단위가 %이면 수량 입력을 0~100 정수·25% 스텝으로 바꾸고 남은 양 프리셋을 보여준다. */
+  function syncPctPresets() {
+    var pres = $('itPctPresets'); if (!pres) return;
+    var q = $('itQty');
+    var val = pctClamp(q ? q.value : 0);
+    var btns = pres.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].className = (num(btns[i].getAttribute('data-pct')) === val) ? 'on' : '';
+    }
+  }
+  function syncPercentUi() {
+    var uEl = $('itUnit'); if (!uEl) return;
+    var pct = isPctUnit(uEl.value);
+    var chips = $('itUnitChips');
+    if (chips) {
+      var cbs = chips.querySelectorAll('.uchip');
+      for (var i = 0; i < cbs.length; i++) {
+        var on = String(cbs[i].getAttribute('data-unit')) === String(uEl.value).trim();
+        cbs[i].className = 'uchip' + (on ? ' on' : '');
+        cbs[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+      }
+    }
+    var q = $('itQty'), lbl = $('itQtyLbl'), pres = $('itPctPresets'), mn = $('itMin');
+    if (lbl) lbl.textContent = pct ? '남은 양 (%)' : '수량';
+    var minLbl = $('itMinLbl');
+    if (minLbl) minLbl.textContent = pct ? '단골 기준 남은 양 (%)' : '단골 최소 수량';
+    if (q) {
+      if (pct) { q.setAttribute('max', '100'); q.max = '100'; } else q.removeAttribute('max');
+      q.setAttribute('step', pct ? '25' : '0.5');
+      q.setAttribute('inputmode', pct ? 'numeric' : 'decimal');
+      if (pct) q.value = String(pctClamp(q.value));
+    }
+    if (pres) pres.hidden = !pct;
+    if (mn) {
+      if (pct) { mn.setAttribute('max', '100'); mn.max = '100'; } else mn.removeAttribute('max');
+      mn.setAttribute('step', pct ? '5' : '1');
+      var mv = num(mn.value);
+      if (pct) {
+        if (!(mv >= 1 && mv <= 100)) mn.value = String(pctMin({ minQty: mv }));
+        else if (mv === 1) mn.value = '25';
+      } else if (!(mv >= 1)) mn.value = '1';
+    }
+    if (pct) syncPctPresets();
   }
 
   function saveItem() {
     var name = fieldVal('itName').trim();
     var msg = $('itemMsg');
     if (!name) { if (msg) msg.textContent = '이름을 넣어 주세요.'; return; }
+    var unitRaw = fieldVal('itUnit').trim() || '개';
+    var unit = isPctUnit(unitRaw) ? '%' : unitRaw.slice(0, 6);
+    var qtyRaw = fieldVal('itQty').trim();
+    if (isPctUnit(unit) && !qtyRaw) { if (msg) msg.textContent = '남은 양을 0~100 사이로 넣어 주세요.'; return; }
+    var qty = isPctUnit(unit) ? pctClamp(qtyRaw) : Math.max(0, num(qtyRaw));
+    var minQty = isPctUnit(unit) ? Math.max(1, pctMin({ minQty: fieldVal('itMin') })) : Math.max(1, num(fieldVal('itMin')) || 1);
     var data = {
       name: name,
-      qty: num(fieldVal('itQty')),
-      unit: fieldVal('itUnit').trim() || '개',
+      qty: qty,
+      unit: unit,
       storage: normStorage(fieldVal('itStorage')),
       boughtAt: fieldVal('itDate'),
       price: num(fieldVal('itPrice')),
       staple: !!($('itStaple') && $('itStaple').checked),
-      minQty: num(fieldVal('itMin')) || 1,
+      minQty: minQty,
       note: fieldVal('itNote')
     };
     var it = ui.itemEdit ? findItem(ui.itemEdit) : null;
     if (it) {
-      it.name = data.name; it.qty = Math.max(0, data.qty); it.unit = data.unit; it.storage = data.storage;
+      it.name = data.name; it.qty = data.qty; it.unit = data.unit; it.storage = data.storage;
       it.boughtAt = isYmd(data.boughtAt) ? data.boughtAt : '';
       it.price = Math.max(0, Math.round(data.price));
-      it.staple = data.staple; it.minQty = Math.max(1, data.minQty);
+      it.staple = data.staple; it.minQty = data.minQty;
       it.note = data.note; it.updatedAt = Date.now();
       it.status = it.qty > 0 ? 'in' : 'out';
     } else {
@@ -3625,6 +3739,22 @@
     if (act === 'settings-open') { ui.keyMsg = ''; renderSettings(); showModal('settingsModal'); aiSyncShared(); return; }
     if (act === 'item-add') { openItemModal(''); return; }
     if (act === 'item-save') { saveItem(); return; }
+    if (act === 'unit-pick') {
+      var uEl = $('itUnit'); if (!uEl) return;
+      var wasPct = isPctUnit(uEl.value);
+      var nu = el.getAttribute('data-unit') || '';
+      uEl.value = nu;
+      var qEl = $('itQty');
+      if (qEl && isPctUnit(nu) && !wasPct) qEl.value = '100';
+      syncPercentUi();
+      return;
+    }
+    if (act === 'pct-pick') {
+      var pEl = $('itQty'); if (!pEl) return;
+      pEl.value = String(pctClamp(el.getAttribute('data-pct')));
+      syncPctPresets();
+      return;
+    }
     if (act === 'item-edit') { openItemModal(id); return; }
     if (act === 'item-del') {
       var it = findItem(id); if (!it) return;
@@ -3636,7 +3766,8 @@
     if (act === 'qty-up' || act === 'qty-down') {
       var q = findItem(id); if (!q) return;
       var before = num(q.qty);
-      q.qty = Math.max(0, before + (act === 'qty-up' ? 1 : -1));
+      var step = qtyStep(q.unit);
+      q.qty = qtyClamp(before + (act === 'qty-up' ? step : -step), q.unit);
       q.status = q.qty > 0 ? 'in' : 'out';
       q.updatedAt = Date.now();
       if (act === 'qty-down' && before > q.qty) logDaily('consumed', q, before - q.qty);
@@ -3650,7 +3781,7 @@
         o.qty = 0; o.status = 'out'; o.updatedAt = Date.now();
         markDirty('inventory'); renderAll(); toast('다 먹었어요 · ' + o.name);
       } else {
-        o.qty = Math.max(1, num(o.minQty) || 1);
+        o.qty = isPctUnit(o.unit) ? 100 : Math.max(1, num(o.minQty) || 1);
         o.status = 'in';
         o.boughtAt = todayStr();
         o.updatedAt = Date.now();
@@ -3663,7 +3794,7 @@
       var st = findItem(id); if (!st) return;
       st.staple = !st.staple;
       if (st.staple) st.alert = true;
-      if (st.staple && !st.minQty) st.minQty = 1;
+      if (st.staple && !st.minQty) st.minQty = isPctUnit(st.unit) ? 25 : 1;
       st.updatedAt = Date.now();
       markDirty('inventory'); renderAll();
       toast(st.staple ? '★ ' + st.name + ' 알림 재료로 표시했어요' : st.name + ' 알림 해제');
@@ -3852,6 +3983,8 @@
       renderInventory();
       return;
     }
+    if (t.id === 'itUnit') { syncPercentUi(); return; }
+    if (t.id === 'itQty') { if (isPctUnit(fieldVal('itUnit'))) syncPctPresets(); return; }
     if (t.id === 'sortSel') return;
     if (t.hasAttribute && t.hasAttribute('data-ri') && ui.rec && ui.rec.step === 'review') {
       var i = parseInt(t.getAttribute('data-ri'), 10);
@@ -3884,6 +4017,12 @@
       return;
     }
     if (t.id === 'sortSel') { ui.sort = t.value; renderTools(); renderInventory(); return; }
+    if (t.id === 'itUnit') { syncPercentUi(); return; }
+    if (t.id === 'itQty' && isPctUnit(fieldVal('itUnit'))) {
+      t.value = String(pctClamp(t.value));
+      syncPctPresets();
+      return;
+    }
     if (t.getAttribute && t.getAttribute('data-sel') === 'recipe-sort') {
       ui.recipeSort = normRecipeSort(t.value);
       lsSet(RECIPE_SORT_KEY, ui.recipeSort);
