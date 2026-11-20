@@ -231,33 +231,34 @@
   .restore{ background:#eef5ff; color:#2f6fb5; }
 
   /* ---------- 레시피 ---------- */
-  .recipe-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:9px; }
-  .rc{ display:flex; gap:10px; border:2px solid #f5ede2; background:#fffdf9; border-radius:18px; padding:11px 12px; }
-  .rc-emoji{ font-size:26px; line-height:1; flex:0 0 auto; }
-  .rc-body{ min-width:0; flex:1 1 auto; }
-  .rc-title{ display:flex; align-items:center; gap:7px; }
-  .rc-title b{ font-size:14.5px; font-weight:900; }
-  .pct{ margin-left:auto; font-size:11.5px; font-weight:900; padding:3px 8px; border-radius:999px; background:#eefaf3; color:#0f7a55; white-space:nowrap; }
-  .pct.low{ background:#fff4e6; color:#b0610b; }
-  .rc-desc{ margin:4px 0 0; font-size:11.5px; font-weight:700; color:#8a93a8; line-height:1.5; }
-  .rc-ing{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-  .rc-ing span{ font-size:10.5px; font-weight:900; padding:3px 7px; border-radius:999px; background:#f1f7ee; color:#3f7a4f; }
-  .rc-ing span.miss{ background:#f6f1ea; color:#a99c8c; border:1px dashed #e6dccf; }
+  .recipes .card-head h2 .count{ min-width:20px; height:20px; padding:0 6px; font-size:11.5px; background:#eefaf3; color:#0f7a55; vertical-align:0; }
+  .recipe-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(258px,1fr)); gap:9px; align-items:start; }
+  .rc{
+    display:block; min-width:0; border:2px solid #f5ede2; background:#fffdf9; border-radius:16px;
+    padding:9px 11px 10px; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+    transition:background .15s, border-color .15s;
+  }
+  .rc.open{ background:#fffaf1; border-color:#f7e0bf; }
+  @media (min-width:900px){ .rc.open{ grid-column:span 2; } }
+  .rc-top{ display:flex; align-items:center; gap:6px; min-width:0; }
+  .rc-emoji{ flex:0 0 auto; font-size:17px; line-height:1; }
+  .rc-name{ min-width:0; font-size:14px; font-weight:900; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rc-badge{ flex:0 0 auto; font-size:10.5px; font-weight:900; padding:2px 7px; border-radius:999px; background:#eefaf3; color:#0f7a55; white-space:nowrap; }
+  .rc-badge.ai{ background:#f3ecff; color:#5b3fa8; }
+  .rc-caret{ flex:0 0 auto; margin-left:auto; font-size:9px; color:#b8ab99; transition:transform .18s; }
+  .rc.open .rc-caret{ transform:rotate(180deg); }
+  .rc-line{ margin:3px 0 0; font-size:11.5px; font-weight:800; color:#8a93a8; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rc-steps{ display:none; margin-top:8px; padding-top:7px; border-top:1px dashed #efe3d4; }
+  .rc.open .rc-steps{ display:block; }
+  .rc-steps ol{ margin:0; padding-left:16px; font-size:12px; font-weight:700; color:#5f566f; line-height:1.55; }
+  .rc-steps li + li{ margin-top:2px; }
+  .rc-refresh{ flex:0 0 auto; }
+  .rc-updated{ margin-left:auto; font-size:11px; font-weight:800; color:#a99c8c; }
+  .rc-loading{ display:flex; align-items:center; gap:8px; margin:0 0 9px; padding:9px 11px; border-radius:14px; background:#f8fbff; font-size:12px; font-weight:800; color:#6d6484; }
+  .rc-loading .ring{ flex:0 0 auto; width:16px; height:16px; border-radius:50%; border:3px solid #dcecff; border-top-color:#5ac8fa; animation:spin .9s linear infinite; }
+  .rc-empty{ padding:16px 12px; }
   .more-row{ display:flex; justify-content:center; margin-top:10px; }
-  .ai-box{ margin-top:14px; border-top:2px dashed #f0e4d6; padding-top:13px; }
-  .ai-head{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:9px; }
-  .ai-head b{ font-size:15px; font-weight:900; }
-  .ai-at{ font-size:11.5px; font-weight:800; color:#a99c8c; }
-  .ai-head .btn{ margin-left:auto; }
-  .ai-empty{ font-size:12.5px; font-weight:700; color:#8a93a8; background:#f8fbff; border-radius:14px; padding:12px 13px; line-height:1.6; }
-  .ai-cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:9px; }
-  .ai-card{ background:linear-gradient(160deg,#fbf7ff,#f4fbff); border:2px solid #efe6ff; border-radius:18px; padding:12px 13px; }
-  .ai-card-head{ display:flex; align-items:center; gap:8px; }
-  .ai-card-head b{ font-size:14.5px; font-weight:900; }
-  .ai-card-head span{ margin-left:auto; font-size:11px; font-weight:900; color:#7c6aa8; }
-  .ai-why{ margin:5px 0 0; font-size:11.5px; font-weight:800; color:#8a7fa8; line-height:1.55; }
-  .ai-steps{ margin:7px 0 0; padding-left:17px; font-size:11.5px; font-weight:700; color:#6d6484; line-height:1.6; }
-  .rc-links{ display:flex; flex-wrap:wrap; gap:4px; margin-top:7px; }
+  .rc-links{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
   .lnk{
     display:inline-flex; align-items:center; gap:3px; border:none; border-radius:999px; padding:4px 9px;
     font-size:10.5px; font-weight:900; text-decoration:none; background:#f4f1ff; color:#5b3fa8;
@@ -750,6 +751,7 @@
   var PATH_MEALS = 'fridge/meals.json';
   var PATH_SET = 'fridge/settings.json';
   var PATH_DAILY = 'fridge/daily.json';
+  var PATH_RECIPES = 'fridge/recipes.json';
   var GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-4-hydrogen', 'gemini-3.6-flash', 'gemini-2.5-flash-lite'];
   var MODEL_CACHE_KEY = 'fridgeDashboard.geminiModel.v1';
 
@@ -790,36 +792,36 @@
     { n: '샐러드', s: 'fridge' }, { n: '멸치', s: 'frozen' }, { n: '우유', s: 'fridge' }, { n: '쌀', s: 'room' }
   ];
 
-  /* 집에서 자주 해 먹는 한식 레시피 — 재료 매칭용 */
+  /* 집에서 자주 해 먹는 한식 레시피 — 재료 매칭 + 조리법(s) */
   var RECIPES = [
-    { e: '🍚', t: '김치볶음밥', d: '김치와 달걀만 있으면 15분', ing: ['김치', '달걀', '대파', '밥', '참기름'] },
-    { e: '🍲', t: '김치찌개', d: '김치·두부로 끓이는 기본 찌개', ing: ['김치', '돼지고기', '두부', '대파'] },
-    { e: '🥘', t: '된장찌개', d: '된장 베이스로 채소 넣고 끓이기', ing: ['된장', '두부', '애호박', '감자', '대파'] },
-    { e: '🍳', t: '달걀찜', d: '달걀과 소금만으로 부드럽게', ing: ['달걀', '대파', '소금'] },
-    { e: '🍄', t: '버터간장 새송이구이', d: '새송이+버터+간장, 10분', ing: ['새송이', '버터', '간장', '마늘'] },
-    { e: '🍝', t: '명란버터파스타', d: '명란젓과 버터로 고소하게', ing: ['명란', '버터', '스파게티면', '마늘'] },
-    { e: '🍜', t: '매생이국', d: '매생이 넣고 시원하게 끓이기', ing: ['매생이', '마늘', '소금'] },
-    { e: '🥣', t: '무된장국', d: '무를 넣어 달큰한 된장국', ing: ['무', '된장', '대파', '마늘'] },
-    { e: '🍲', t: '떡국', d: '떡국떡으로 간단히 한 끼', ing: ['떡국떡', '달걀', '대파', '소고기'] },
-    { e: '🥟', t: '물만두국', d: '물만두 넣고 달걀 풀기', ing: ['물만두', '달걀', '대파'] },
-    { e: '🍜', t: '물냉면', d: '냉면 사리로 시원한 한 그릇', ing: ['냉면', '달걀', '오이', '겨자'] },
-    { e: '🍕', t: '또띠아 피자', d: '또띠아 위에 케첩·치즈·햄', ing: ['또띠아', '케첩', '치즈', '햄'] },
-    { e: '🍜', t: '비빔국수', d: '고추장 양념에 소면 비비기', ing: ['소면', '고추장', '식초', '설탕', '참기름', '오이'] },
-    { e: '🍜', t: '라면 한 그릇', d: '달걀·대파 넣고 끓이기', ing: ['라면', '달걀', '대파'] },
-    { e: '🥞', t: '김치전', d: '김치와 부침가루로 노릇하게', ing: ['김치', '부침가루'] },
-    { e: '🥞', t: '매생이전', d: '매생이 넣은 바삭한 전', ing: ['매생이', '부침가루'] },
-    { e: '🍄', t: '건버섯 볶음', d: '불린 건버섯을 간장·참기름에', ing: ['건버섯', '간장', '참기름', '마늘'] },
-    { e: '🥗', t: '단호박 샐러드', d: '찐 단호박에 요거트 드레싱', ing: ['단호박', '요거트', '아몬드가루'] },
-    { e: '🫐', t: '블루베리 요거트볼', d: '냉동 블루베리로 간단 디저트', ing: ['블루베리', '요거트'] },
-    { e: '🧀', t: '치즈스틱 에어프라이', d: '냉동 치즈스틱 180도 8분', ing: ['치즈스틱'] },
-    { e: '🍙', t: '참기름 주먹밥', d: '밥에 참기름·깨 넣고 동글동글', ing: ['밥', '김', '참기름', '깨'] },
-    { e: '🔥', t: '불닭볶음면', d: '불닭소스로 매콤하게', ing: ['라면', '불닭소스', '달걀'] },
-    { e: '🍝', t: '버터 마늘 파스타', d: '마늘·버터만으로 기본 파스타', ing: ['스파게티면', '마늘', '버터'] },
-    { e: '🍤', t: '새우 볶음밥', d: '냉동 새우로 새우볶음밥', ing: ['새우', '밥', '달걀', '대파'] },
-    { e: '🥘', t: '두부김치', d: '두부 데쳐 김치와 볶아내기', ing: ['두부', '김치', '대파'] },
-    { e: '🍳', t: '계란후라이', d: '달걀 하나로 든든한 반찬', ing: ['달걀', '소금'] },
-    { e: '🍕', t: '냉동피자', d: '피자 데워서 간단 야식', ing: ['피자'] },
-    { e: '🍖', t: '떡갈비 구이', d: '떡갈비 에어프라이 한 접시', ing: ['떡갈비'] }
+    { e: '🍚', t: '김치볶음밥', d: '김치와 달걀만 있으면 15분', ing: ['김치', '달걀', '대파', '밥', '참기름'], s: ['김치를 잘게 썰고 대파는 송송 썰어요.', '팬에 기름을 두르고 김치를 2분 볶아요.', '밥을 넣고 김치와 고루 섞어 볶아요.', '한쪽에 달걀을 풀어 익힌 뒤 참기름을 두르고 마무리해요.'] },
+    { e: '🍲', t: '김치찌개', d: '김치·두부로 끓이는 기본 찌개', ing: ['김치', '돼지고기', '두부', '대파'], s: ['돼지고기를 한입 크기로 썰어 팬에 볶아요.', '김치를 넣고 함께 볶다가 물 3컵을 부어요.', '끓어오르면 두부를 넣고 10분 더 끓여요.', '대파를 넣고 한소끔 끓여 마무리해요.'] },
+    { e: '🥘', t: '된장찌개', d: '된장 베이스로 채소 넣고 끓이기', ing: ['된장', '두부', '애호박', '감자', '대파'], s: ['무·애호박·감자를 먹기 좋게 썰어요.', '냄비에 물 3컵과 된장 1큰술을 풀어 끓여요.', '감자와 애호박을 먼저 넣고 7분 끓여요.', '두부와 대파를 넣고 3분 더 끓여요.'] },
+    { e: '🍳', t: '달걀찜', d: '달걀과 소금만으로 부드럽게', ing: ['달걀', '대파', '소금'], s: ['달걀 3개를 풀고 물 1컵과 소금을 넣어 섞어요.', '대파를 잘게 썰어 넣어요.', '냄비에 부어 약불에서 저어가며 익혀요.', '가장자리가 굳으면 뚜껑을 덮고 3분 더 익혀요.'] },
+    { e: '🍄', t: '버터간장 새송이구이', d: '새송이+버터+간장, 10분', ing: ['새송이', '버터', '간장', '마늘'], s: ['새송이버섯을 0.5cm 두께로 저며요.', '팬에 버터를 녹이고 새송이를 노릇하게 구워요.', '간장과 다진 마늘을 넣고 1분 더 볶아요.', '접시에 담고 남은 소스를 끼얹어요.'] },
+    { e: '🍝', t: '명란버터파스타', d: '명란젓과 버터로 고소하게', ing: ['명란', '버터', '스파게티면', '마늘'], s: ['끓는 물에 소금을 넣고 면을 8분 삶아요.', '팬에 버터와 다진 마늘을 약불에 볶아요.', '명란젓을 껍질에서 발라 넣고 섞어요.', '삶은 면을 넣고 면수 3큰술로 농도를 맞춰요.'] },
+    { e: '🍜', t: '매생이국', d: '매생이 넣고 시원하게 끓이기', ing: ['매생이', '마늘', '소금'], s: ['매생이를 물에 살살 헹궈요.', '냄비에 물을 끓이고 다진 마늘을 넣어요.', '매생이를 넣고 3분 끓여요.', '소금으로 간을 맞춰요.'] },
+    { e: '🥣', t: '무된장국', d: '무를 넣어 달큰한 된장국', ing: ['무', '된장', '대파', '마늘'], s: ['무를 얇게 썰고 대파를 송송 썰어요.', '물 3컵에 된장을 풀어 끓여요.', '무를 넣고 7분 끓여요.', '대파와 다진 마늘을 넣고 한소끔 끓여요.'] },
+    { e: '🍲', t: '떡국', d: '떡국떡으로 간단히 한 끼', ing: ['떡국떡', '달걀', '대파', '소고기'], s: ['떡국떡을 물에 5분 불려요.', '냄비에 물 3컵을 끓이고 떡을 넣어요.', '떡이 떠오르면 소고기와 대파를 넣어요.', '달걀을 풀어 넣고 한소끔 끓여요.'] },
+    { e: '🥟', t: '물만두국', d: '물만두 넣고 달걀 풀기', ing: ['물만두', '달걀', '대파'], s: ['물 3컵을 끓여요.', '물만두를 넣고 떠오를 때까지 4분 끓여요.', '대파를 넣고 달걀을 풀어 넣어요.', '소금으로 간을 맞춰요.'] },
+    { e: '🍜', t: '물냉면', d: '냉면 사리로 시원한 한 그릇', ing: ['냉면', '달걀', '오이', '겨자'], s: ['냉면 사리를 끓는 물에 1분 삶아 찬물에 헹궈요.', '그릇에 냉면 육수를 부어요.', '오이를 채 썰고 달걀을 삶아 반으로 잘라요.', '면을 담고 오이·달걀·겨자를 올려요.'] },
+    { e: '🍕', t: '또띠아 피자', d: '또띠아 위에 케첩·치즈·햄', ing: ['또띠아', '케첩', '치즈', '햄'], s: ['또띠아에 케첩을 고루 발라요.', '햄과 치즈를 올려요.', '에어프라이어 180도에서 6분 구워요.', '먹기 좋게 잘라요.'] },
+    { e: '🍜', t: '비빔국수', d: '고추장 양념에 소면 비비기', ing: ['소면', '고추장', '식초', '설탕', '참기름', '오이'], s: ['끓는 물에 소면을 3분 삶아 찬물에 헹궈요.', '고추장·식초·설탕·참기름을 섞어 양념을 만들어요.', '오이를 채 썰어요.', '면에 양념과 오이를 올려 비벼요.'] },
+    { e: '🍜', t: '라면 한 그릇', d: '달걀·대파 넣고 끓이기', ing: ['라면', '달걀', '대파'], s: ['물 550ml를 끓여요.', '스프와 면을 넣고 3분 끓여요.', '대파를 송송 썰어 넣어요.', '달걀을 풀어 넣고 30초 익혀요.'] },
+    { e: '🥞', t: '김치전', d: '김치와 부침가루로 노릇하게', ing: ['김치', '부침가루'], s: ['김치를 잘게 썰어요.', '부침가루와 물을 1:1로 섞어 반죽해요.', '김치를 넣고 고루 섞어요.', '팬에 기름을 두르고 앞뒤로 노릇하게 부쳐요.'] },
+    { e: '🥞', t: '매생이전', d: '매생이 넣은 바삭한 전', ing: ['매생이', '부침가루'], s: ['매생이를 살살 헹궈 물기를 빼요.', '부침가루와 물을 섞어 반죽해요.', '매생이를 넣고 가볍게 섞어요.', '팬에 얇게 펴서 앞뒤로 바삭하게 부쳐요.'] },
+    { e: '🍄', t: '건버섯 볶음', d: '불린 건버섯을 간장·참기름에', ing: ['건버섯', '간장', '참기름', '마늘'], s: ['건버섯을 미지근한 물에 20분 불려요.', '물기를 꼭 짜고 먹기 좋게 썰어요.', '팬에 기름을 두르고 마늘을 볶아요.', '건버섯을 넣고 간장·참기름으로 간해 볶아요.'] },
+    { e: '🥗', t: '단호박 샐러드', d: '찐 단호박에 요거트 드레싱', ing: ['단호박', '요거트', '아몬드가루'], s: ['단호박을 깍둑 썰어 전자레인지에 5분 익혀요.', '한김 식혀요.', '요거트에 아몬드가루를 섞어 드레싱을 만들어요.', '단호박에 드레싱을 올려요.'] },
+    { e: '🫐', t: '블루베리 요거트볼', d: '냉동 블루베리로 간단 디저트', ing: ['블루베리', '요거트'], s: ['냉동 블루베리를 살짝 녹여요.', '그릇에 요거트를 담아요.', '블루베리를 올리고 가볍게 섞어요.'] },
+    { e: '🧀', t: '치즈스틱 에어프라이', d: '냉동 치즈스틱 180도 8분', ing: ['치즈스틱'], s: ['치즈스틱을 에어프라이어에 놓아요.', '180도에서 8분 구워요.', '뒤집어 3분 더 구워요.'] },
+    { e: '🍙', t: '참기름 주먹밥', d: '밥에 참기름·깨 넣고 동글동글', ing: ['밥', '김', '참기름', '깨'], s: ['따뜻한 밥에 참기름과 깨를 넣어 섞어요.', '김을 잘게 부숴 넣어요.', '한입 크기로 동글게 뭉쳐요.'] },
+    { e: '🔥', t: '불닭볶음면', d: '불닭소스로 매콤하게', ing: ['라면', '불닭소스', '달걀'], s: ['물 500ml를 끓여 면을 4분 삶아요.', '물을 8숟갈 남기고 따라내요.', '불닭소스를 넣고 30초 볶아요.', '달걀 프라이를 올려요.'] },
+    { e: '🍝', t: '버터 마늘 파스타', d: '마늘·버터만으로 기본 파스타', ing: ['스파게티면', '마늘', '버터'], s: ['끓는 물에 소금을 넣고 면을 8분 삶아요.', '팬에 버터를 녹이고 다진 마늘을 약불에 볶아요.', '면수 3큰술을 넣고 소스를 만들어요.', '삶은 면을 넣고 고루 버무려요.'] },
+    { e: '🍤', t: '새우 볶음밥', d: '냉동 새우로 새우볶음밥', ing: ['새우', '밥', '달걀', '대파'], s: ['새우를 해동해 물기를 빼요.', '팬에 기름을 두르고 새우를 볶아요.', '밥을 넣고 고루 볶아요.', '달걀과 대파를 넣고 마무리해요.'] },
+    { e: '🥘', t: '두부김치', d: '두부 데쳐 김치와 볶아내기', ing: ['두부', '김치', '대파'], s: ['두부를 1cm로 썰어 끓는 물에 2분 데쳐요.', '팬에 김치를 볶아요.', '대파를 넣고 한 번 더 볶아요.', '두부 위에 볶은 김치를 올려요.'] },
+    { e: '🍳', t: '계란후라이', d: '달걀 하나로 든든한 반찬', ing: ['달걀', '소금'], s: ['팬에 기름을 두르고 약불로 데워요.', '달걀을 깨 넣고 흰자가 익을 때까지 두어요.', '소금을 살짝 뿌려요.'] },
+    { e: '🍕', t: '냉동피자', d: '피자 데워서 간단 야식', ing: ['피자'], s: ['피자를 에어프라이어에 놓아요.', '180도에서 10분 구워요.', '가운데까지 뜨거워지면 꺼내요.'] },
+    { e: '🍖', t: '떡갈비 구이', d: '떡갈비 에어프라이 한 접시', ing: ['떡갈비'], s: ['떡갈비를 실온에 5분 두어요.', '에어프라이어 180도에서 10분 구워요.', '뒤집어 5분 더 구워요.'] }
   ];
 
   var PROMPT_RECEIPT = '너는 한국 가정의 냉장고 관리 도우미야. 첨부한 영수증 또는 장보기 목록 사진에서 구매한 식재료를 읽어 정리해줘.\n' +
@@ -854,13 +856,11 @@
           type: 'OBJECT',
           properties: {
             title: { type: 'STRING' },
-            reason: { type: 'STRING' },
             minutes: { type: 'NUMBER' },
             ingredients: { type: 'ARRAY', items: { type: 'STRING' } },
-            missing: { type: 'ARRAY', items: { type: 'STRING' } },
             steps: { type: 'ARRAY', items: { type: 'STRING' } }
           },
-          required: ['title', 'ingredients']
+          required: ['title', 'ingredients', 'steps']
         }
       }
     },
@@ -873,6 +873,7 @@
       inventory: { version: 1, updatedAt: '', items: [] },
       meals: { version: 1, updatedAt: '', budget: BUDGET_DEFAULT, weeks: {}, expenses: [] },
       settings: { version: 1, updatedAt: '', recipes: [], recipesAt: '', prefs: {}, links: {} },
+      recipes: { version: 1, updatedAt: '', recipes: [] },
       daily: { version: 1, updatedAt: '', days: {} }
     };
   }
@@ -880,12 +881,12 @@
   var cloud = {
     conn: null, me: null, users: null, session: null,
     status: 'idle', statusAt: 0, sha: {},
-    dirty: { inventory: false, meals: false, settings: false, daily: false },
+    dirty: { inventory: false, meals: false, settings: false, daily: false, recipes: false },
     timer: 0, saving: false
   };
   var ui = {
     search: '', storages: { frozen: true, fridge: true, room: true, sauce: true },
-    status: 'in', sort: 'new', recipeAll: false, weekStart: '',
+    status: 'in', sort: 'new', recipeAll: false, openRecipe: {}, weekStart: '',
     itemEdit: '', mealDay: '', rec: null, keyMsg: '', aiBusy: false, gateMode: '', shopOpen: false,
     tab: '', watchOpen: false, watchEdit: '', linkKey: '', linkTitle: '',
     histY: 0, histM: 0, histSel: '', editSections: false
@@ -1063,6 +1064,72 @@
     return out;
   }
 
+  /* 레시피 도서관(fridge/recipes.json) — 한 번 받아서 계속 쌓아 쓰는 요리 목록 */
+  function recipeKey(s) {
+    return String(s || '').trim().toLowerCase().replace(/\s+/g, '');
+  }
+  function normalizeRecipeEntry(r, i) {
+    r = r || {};
+    var title = String(r.title || '').trim().slice(0, 60);
+    if (!title) return null;
+    var ings = [], st = [], a;
+    var list = r.ingredients || [];
+    for (a = 0; a < list.length && a < 16; a++) {
+      var v = String(list[a] || '').trim().slice(0, 30);
+      if (v) ings.push(v);
+    }
+    if (!ings.length) return null;
+    list = r.steps || [];
+    for (a = 0; a < list.length && a < 10; a++) {
+      var stp = String(list[a] || '').trim().slice(0, 200);
+      if (stp) st.push(stp);
+    }
+    return {
+      id: String(r.id || ('r_' + i)).slice(0, 40),
+      title: title,
+      emoji: String(r.emoji || '🍽').slice(0, 4),
+      minutes: Math.max(0, Math.round(num(r.minutes))),
+      ingredients: ings,
+      steps: st,
+      source: r.source === 'ai' ? 'ai' : 'builtin',
+      createdAt: num(r.createdAt) || Date.now()
+    };
+  }
+  function normalizeRecipes(raw) {
+    var out = { version: 1, updatedAt: (raw && raw.updatedAt) || '', recipes: [] };
+    var list = (raw && raw.recipes) || [];
+    if (Object.prototype.toString.call(list) !== '[object Array]') return out;
+    for (var i = 0; i < list.length && i < 400; i++) {
+      var e = normalizeRecipeEntry(list[i], i);
+      if (e) out.recipes.push(e);
+    }
+    return out;
+  }
+  /* 처음 한 번만 쓰는 기본 도서관: 집에서 자주 해 먹는 요리 + 예전 저장된 AI 추천 */
+  function seedRecipes() {
+    var now = Date.now(), list = [], seen = {}, i;
+    for (i = 0; i < RECIPES.length; i++) {
+      var r = RECIPES[i];
+      seen[recipeKey(r.t)] = 1;
+      list.push({
+        id: 'rb_' + (i + 1), title: r.t, emoji: r.e, minutes: 0,
+        ingredients: r.ing.slice(0), steps: (r.s || []).slice(0),
+        source: 'builtin', createdAt: now - (RECIPES.length - i) * 1000
+      });
+    }
+    var legacy = state.settings.recipes || [];
+    for (i = 0; i < legacy.length; i++) {
+      var a = legacy[i] || {};
+      var k = recipeKey(a.title);
+      if (!k || seen[k]) continue;
+      var e = normalizeRecipeEntry({ id: uid('ra'), title: a.title, emoji: '✨', minutes: a.minutes, ingredients: a.ingredients, steps: a.steps, source: 'ai', createdAt: now + i }, i);
+      if (!e) continue;
+      seen[k] = 1;
+      list.push(e);
+    }
+    return { version: 1, updatedAt: nowIso(), recipes: list };
+  }
+
   function normEventList(list) {
     var out = [];
     if (Object.prototype.toString.call(list) !== '[object Array]') return out;
@@ -1131,7 +1198,7 @@
   function saveLocal() {
     try {
       lsSet(LOCAL_KEY, JSON.stringify({
-        inventory: state.inventory, meals: state.meals, settings: state.settings, daily: state.daily,
+        inventory: state.inventory, meals: state.meals, settings: state.settings, recipes: state.recipes, daily: state.daily,
         dirty: cloud.dirty, savedAt: Date.now()
       }));
     } catch (e) { /* 용량 초과 등은 무시 */ }
@@ -1146,12 +1213,14 @@
     if (l.inventory) state.inventory = normalizeInventory(l.inventory);
     if (l.meals) state.meals = normalizeMeals(l.meals);
     if (l.settings) state.settings = normalizeSettings(l.settings);
+    if (l.recipes) state.recipes = normalizeRecipes(l.recipes);
     if (l.daily) state.daily = normalizeDaily(l.daily);
     if (l.dirty && typeof l.dirty === 'object') {
       cloud.dirty.inventory = !!l.dirty.inventory;
       cloud.dirty.meals = !!l.dirty.meals;
       cloud.dirty.settings = !!l.dirty.settings;
       cloud.dirty.daily = !!l.dirty.daily;
+      cloud.dirty.recipes = !!l.dirty.recipes;
     }
   }
 
@@ -1393,7 +1462,7 @@
       cloud.status === 'offline' ? '오프라인 · 이 기기에만 저장 중' :
       cloud.saving ? '저장 중…' : '아직 저장 기록이 없어요';
   }
-  function anyDirty() { return cloud.dirty.inventory || cloud.dirty.meals || cloud.dirty.settings || cloud.dirty.daily; }
+  function anyDirty() { return cloud.dirty.inventory || cloud.dirty.meals || cloud.dirty.settings || cloud.dirty.daily || cloud.dirty.recipes; }
   function renderSyncPill() {
     var el = $('syncPill');
     if (!el) return;
@@ -1425,6 +1494,7 @@
     if (kind === 'meals') cloud.dirty.meals = true;
     if (kind === 'settings') cloud.dirty.settings = true;
     if (kind === 'daily') cloud.dirty.daily = true;
+    if (kind === 'recipes') cloud.dirty.recipes = true;
     saveLocal();
     renderSyncPill();
     scheduleSync();
@@ -1442,7 +1512,8 @@
     var jobs = [];
     if (cloud.dirty.inventory) jobs.push({ kind: 'inventory', path: PATH_INV, obj: { version: 1, updatedAt: nowIso(), items: state.inventory.items } });
     if (cloud.dirty.meals) jobs.push({ kind: 'meals', path: PATH_MEALS, obj: { version: 1, updatedAt: nowIso(), budget: state.meals.budget, weeks: state.meals.weeks, expenses: state.meals.expenses } });
-    if (cloud.dirty.settings) jobs.push({ kind: 'settings', path: PATH_SET, obj: { version: 1, updatedAt: nowIso(), recipes: state.settings.recipes, recipesAt: state.settings.recipesAt, prefs: state.settings.prefs, links: state.settings.links, sectionOrder: state.settings.sectionOrder, sectionTitles: state.settings.sectionTitles } });
+    if (cloud.dirty.settings) jobs.push({ kind: 'settings', path: PATH_SET, obj: { version: 1, updatedAt: nowIso(), prefs: state.settings.prefs, links: state.settings.links, sectionOrder: state.settings.sectionOrder, sectionTitles: state.settings.sectionTitles } });
+    if (cloud.dirty.recipes) jobs.push({ kind: 'recipes', path: PATH_RECIPES, obj: { version: 1, updatedAt: nowIso(), recipes: state.recipes.recipes } });
     if (cloud.dirty.daily) jobs.push({ kind: 'daily', path: PATH_DAILY, obj: { version: 1, updatedAt: nowIso(), days: state.daily.days } });
     var failed = null;
     for (var i = 0; i < jobs.length; i++) {
@@ -1952,102 +2023,137 @@
   }
 
   /* ---------- 레시피 ---------- */
-  function scoreRecipes() {
-    var stock = inStock(state.inventory.items).map(function (it) { return norm(it.name); }).filter(Boolean);
-    var out = [];
-    function has(ing) {
-      var n = norm(ing);
-      if (!n) return false;
-      for (var i = 0; i < stock.length; i++) {
-        var s = stock[i];
-        if (s === n) return true;
-        if (s.length >= 2 && n.indexOf(s) >= 0) return true;
-        if (n.length >= 2 && s.indexOf(n) >= 0) return true;
-      }
-      return false;
+  /* 지금 재고로 100% 만들 수 있는 요리만 보여준다. */
+  var PANTRY = ['물', '소금', '식용유', '후추'];
+  function cleanIng(s) {
+    return String(s || '')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/[0-9]+(\.[0-9]+)?\s*(kg|g|ml|l|개|대|쪽|큰술|작은술|컵|공기|장|줌|봉|팩|조각|인분|모|캔|알|마리|줄기|cm)/gi, ' ')
+      .replace(/(약간|조금|적당량|적당히|취향껏)/g, ' ')
+      .replace(/\s+/g, '')
+      .toLowerCase();
+  }
+  function isPantry(name) { return PANTRY.indexOf(cleanIng(name)) >= 0; }
+  function stockNames() {
+    var out = [], seen = {}, list = inStock(state.inventory.items);
+    for (var i = 0; i < list.length; i++) {
+      var n = cleanIng(list[i].name);
+      if (!n || seen[n]) continue;
+      seen[n] = 1; out.push(n);
     }
-    for (var i = 0; i < RECIPES.length; i++) {
-      var r = RECIPES[i], matched = 0, missing = [];
-      for (var j = 0; j < r.ing.length; j++) {
-        if (has(r.ing[j])) matched++;
-        else missing.push(r.ing[j]);
-      }
-      out.push({ r: r, matched: matched, missing: missing, pct: Math.round(matched / r.ing.length * 100) });
-    }
-    out.sort(function (a, b) { return b.pct - a.pct || a.missing.length - b.missing.length || a.r.t.localeCompare(b.r.t, 'ko'); });
     return out;
+  }
+  function hasStock(stock, ing) {
+    var n = cleanIng(ing);
+    if (!n) return false;
+    if (isPantry(n)) return true;
+    for (var i = 0; i < stock.length; i++) {
+      var s = stock[i];
+      if (s === n) return true;
+      if (s.length >= 2 && n.indexOf(s) >= 0) return true;
+      if (n.length >= 2 && s.indexOf(n) >= 0) return true;
+    }
+    return false;
+  }
+  function missingIngs(ings, stock) {
+    var miss = [];
+    for (var i = 0; i < ings.length; i++) if (!hasStock(stock, ings[i])) miss.push(ings[i]);
+    return miss;
+  }
+
+  /* 레시피 도서관에서 지금 재고로 100% 만들 수 있는 요리만 골라낸다. */
+  function fullRecipes() {
+    var stock = stockNames(), out = [], i;
+    var list = (state.recipes && state.recipes.recipes) || [];
+    for (i = 0; i < list.length; i++) {
+      var r = list[i];
+      if (!r || !r.title || !r.ingredients || !r.ingredients.length) continue;
+      if (missingIngs(r.ingredients, stock).length) continue;
+      out.push({
+        kind: r.source === 'ai' ? 'a' : 'b',
+        pos: i,
+        id: String(r.id || ('k_' + i)),
+        title: r.title,
+        emoji: r.emoji || '🍽',
+        ings: r.ingredients,
+        steps: r.steps || [],
+        minutes: num(r.minutes),
+        ai: r.source === 'ai',
+        createdAt: num(r.createdAt)
+      });
+    }
+    /* AI로 새로 담은 요리를 먼저(나중에 담은 것부터), 그다음 기본 요리 순서대로 */
+    out.sort(function (a, b) {
+      if (a.ai !== b.ai) return a.ai ? -1 : 1;
+      if (a.ai && a.pos !== b.pos) return b.pos - a.pos;
+      return 0;
+    });
+    return out;
+  }
+
+  function recipeCardHtml(it) {
+    var key = it.id || (it.kind + ':' + it.title);
+    var open = !!(ui.openRecipe && ui.openRecipe[key]);
+    var steps = it.steps || [], i;
+    var ing = '';
+    for (i = 0; i < it.ings.length; i++) ing += (i ? ' · ' : '') + it.ings[i];
+    if (it.minutes) ing += ' · ' + it.minutes + '분';
+    var ol = '';
+    for (i = 0; i < steps.length; i++) ol += '<li>' + esc(steps[i]) + '</li>';
+    var canOpen = steps.length > 0;
+    return '<div class="rc' + (open ? ' open' : '') + '"' + (canOpen ? ' role="button" tabindex="0" data-act="recipe-expand" aria-expanded="' + (open ? 'true' : 'false') + '"' : '') + ' data-key="' + esc(key) + '">' +
+      '<div class="rc-top">' +
+        '<span class="rc-emoji" aria-hidden="true">' + esc(it.emoji) + '</span>' +
+        '<b class="rc-name">' + esc(it.title) + '</b>' +
+        '<span class="rc-badge' + (it.ai ? ' ai' : '') + '">' + (it.ai ? 'AI 100%' : '100%') + '</span>' +
+        (canOpen ? '<span class="rc-caret" aria-hidden="true">▼</span>' : '') +
+      '</div>' +
+      '<p class="rc-line">' + esc(ing) + '</p>' +
+      recipeLinksHtml(it.kind, it.title) +
+      (canOpen ? '<div class="rc-steps"><ol>' + ol + '</ol></div>' : '') +
+      '</div>';
+  }
+
+  function toggleRecipeCard(el) {
+    if (!el) return;
+    var on = !el.classList.contains('open');
+    el.classList.toggle('open', on);
+    el.setAttribute('aria-expanded', on ? 'true' : 'false');
+    var key = el.getAttribute('data-key') || '';
+    if (!key) return;
+    if (!ui.openRecipe) ui.openRecipe = {};
+    if (on) ui.openRecipe[key] = 1; else delete ui.openRecipe[key];
   }
 
   function renderRecipes() {
     var sec = $('recipeSec'); if (!sec) return;
-    var scored = scoreRecipes();
-    var shown = ui.recipeAll ? scored : scored.slice(0, 6);
+    var list = fullRecipes();
+    var shown = ui.recipeAll ? list : list.slice(0, 6);
     var cards = '';
-    for (var i = 0; i < shown.length; i++) {
-      var sc = shown[i], r = sc.r;
-      var ing = '';
-      for (var j = 0; j < r.ing.length; j++) {
-        var miss = sc.missing.indexOf(r.ing[j]) >= 0;
-        ing += '<span class="' + (miss ? 'miss' : '') + '">' + esc(r.ing[j]) + '</span>';
-      }
-      cards += '<div class="rc">' +
-        '<div class="rc-emoji">' + r.e + '</div>' +
-        '<div class="rc-body">' +
-          '<div class="rc-title"><b>' + esc(r.t) + '</b><span class="pct' + (sc.pct < 60 ? ' low' : '') + '">' + sc.pct + '%</span></div>' +
-          '<p class="rc-desc">' + esc(r.d) + (sc.missing.length ? ' · 없는 재료 ' + sc.missing.length + '개' : ' · 지금 바로 가능!') + '</p>' +
-          '<div class="rc-ing">' + ing + '</div>' +
-          recipeLinksHtml('b', r.t) +
-        '</div>' +
-      '</div>';
-    }
-    var more = scored.length > 6 ? '<div class="more-row"><button class="btn sm sub" type="button" data-act="recipe-toggle">' + (ui.recipeAll ? '접기' : '레시피 ' + scored.length + '개 모두 보기') + '</button></div>' : '';
+    for (var i = 0; i < shown.length; i++) cards += recipeCardHtml(shown[i]);
+    var more = list.length > 6 ? '<div class="more-row"><button class="btn sm sub" type="button" data-act="recipe-toggle">' + (ui.recipeAll ? '접기' : '레시피 ' + list.length + '개 모두 보기') + '</button></div>' : '';
 
-    var hasKey = !!getKey();
-    var aiList = '';
-    var recipes = state.settings.recipes || [];
-    if (ui.aiBusy) {
-      aiList = '<div class="spin"><div class="ring"></div><p>지금 있는 재료로 AI가 식단을 짜는 중…</p></div>';
-    } else if (recipes.length) {
-      aiList = '<div class="ai-cards">';
-      for (var k = 0; k < recipes.length; k++) {
-        var ar = recipes[k];
-        var chips = '';
-        for (var a = 0; a < ar.ingredients.length; a++) {
-          var isMiss = ar.missing.indexOf(ar.ingredients[a]) >= 0;
-          chips += '<span class="' + (isMiss ? 'miss' : '') + '">' + esc(ar.ingredients[a]) + '</span>';
-        }
-        var steps = '';
-        for (var s = 0; s < ar.steps.length; s++) steps += '<li>' + esc(ar.steps[s]) + '</li>';
-        aiList += '<div class="ai-card">' +
-          '<div class="ai-card-head"><b>' + esc(ar.title) + '</b><span>' + (ar.minutes ? ar.minutes + '분' : '') + '</span></div>' +
-          (ar.reason ? '<p class="ai-why">' + esc(ar.reason) + '</p>' : '') +
-          (chips ? '<div class="rc-ing">' + chips + '</div>' : '') +
-          (steps ? '<ol class="ai-steps">' + steps + '</ol>' : '') +
-          recipeLinksHtml('a', ar.title) +
-        '</div>';
-      }
-      aiList += '</div>';
-    } else {
-      aiList = '<div class="ai-empty">' + (hasKey
-        ? '✨ 버튼을 누르면 지금 냉장고에 있는 재료로 AI가 이번 주 식단을 짜드려요.'
-        : 'Gemini API 키를 ⚙️ 설정에 넣으면 AI가 식단을 짜드려요.') + '</div>';
-    }
-    var at = state.settings.recipesAt;
-    var atTxt = '';
+    var at = (state.recipes && state.recipes.updatedAt) || state.settings.recipesAt, atTxt = '';
     if (at) {
       var d = new Date(at);
-      if (!isNaN(d.getTime())) atTxt = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ' 추천';
+      if (!isNaN(d.getTime())) atTxt = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ' 업데이트';
     }
-    var aiBtn = '';
+    var btn = '';
     if (!ui.readOnly) {
-      aiBtn = '<button class="btn sm" type="button" data-act="ai-refresh"' + (ui.aiBusy ? ' disabled' : '') + '>✨ AI 추천 식단 업데이트</button>';
+      btn = '<button class="btn sm rc-refresh" type="button" data-act="recipe-refresh"' + (ui.aiBusy ? ' disabled' : '') + '>' + (ui.aiBusy ? '⏳ 업데이트 중…' : '✨ 업데이트') + '</button>';
     }
-    sec.innerHTML = '<div class="card-head"><h2>' + esc(secTitle('recipe')) + '</h2><span class="head-note">재고 기준 자동 매칭</span></div>' +
-      '<div class="recipe-grid">' + cards + '</div>' + more +
-      '<div class="ai-box">' +
-        '<div class="ai-head"><b>✨ AI 추천 식단</b><span class="ai-at">' + esc(atTxt) + '</span>' + aiBtn + '</div>' +
-        aiList +
-      '</div>';
+    var loading = ui.aiBusy ? '<div class="rc-loading"><span class="ring"></span><span>지금 있는 재료로 AI가 레시피를 고르는 중…</span></div>' : '';
+    var body = list.length ? '<div class="recipe-grid">' + cards + '</div>' + more : '';
+    var libReady = !!(state.recipes && (state.recipes.updatedAt || (state.recipes.recipes || []).length));
+    var empty = '';
+    if (!list.length && !ui.aiBusy) {
+      empty = libReady
+        ? '<p class="empty rc-empty">지금 있는 재료로 100% 만들 수 있는 요리가 아직 없어요.<br>재료를 채운 뒤 ✨ 업데이트를 눌러 보세요.</p>'
+        : '<p class="empty rc-empty">레시피를 불러오는 중…</p>';
+    }
+
+    sec.innerHTML = '<div class="card-head"><h2>' + esc(secTitle('recipe')) + (list.length ? ' <span class="count">' + list.length + '</span>' : '') + '</h2>' + btn + (atTxt ? '<span class="rc-updated">' + esc(atTxt) + '</span>' : '') + '</div>' +
+      loading + body + empty;
   }
 
   /* ---------- 주간 식단 ---------- */
@@ -3019,42 +3125,68 @@
 
   async function refreshAI() {
     if (ui.aiBusy) return;
-    if (ui.readOnly) { toast('보기 전용 계정이라 AI 추천을 바꿀 수 없어요.', true); return; }
+    if (ui.readOnly) { toast('보기 전용 계정이라 레시피를 바꿀 수 없어요.', true); return; }
     if (!getKey()) {
-      ui.keyMsg = 'err:AI 추천을 쓰려면 Gemini API 키를 넣어 주세요.';
-      renderSettings();
-      showModal('settingsModal');
+      /* 키가 없으면 기본 레시피(100% 매칭)만 새로 고른다. */
+      ui.recipeAll = false;
+      renderRecipes();
+      var n0 = fullRecipes().length;
+      toast(n0
+        ? '지금 재료로 만드는 레시피 ' + n0 + '개 · AI 추천은 ⚙️ 설정에서 키를 넣어 주세요'
+        : '지금 재료로 100% 되는 요리가 없어요 · AI 추천은 ⚙️ 설정에서 키를 넣어 주세요');
       return;
     }
     ui.aiBusy = true;
+    ui.keyMsg = '';
     renderRecipes();
     try {
       var stock = inStock(state.inventory.items).map(function (it) { return it.name; });
-      var shop = needsShopping().map(function (it) { return it.name; });
-      var prompt = '너는 한국 가정의 식단 도우미야. 아래 냉장고 재고로 이번 주 평일 저녁·아침에 만들 수 있는 한국 가정식 레시피를 4개 추천해줘.\n' +
-        '재고(보유중): ' + stock.join(', ') + '\n' +
-        '지금 없는 단골 재료: ' + (shop.length ? shop.join(', ') : '없음') + '\n' +
-        '조건: 1) 재고 재료를 최대한 쓰고, 없어도 사기 쉬운 재료만 missing에 적기 2) 조리 30분 이내 3) 아이도 먹을 수 있는 순한 맛 위주 4) 각 레시피에 title, reason(한 줄), minutes(숫자), ingredients(재료 배열), missing(지금 없는 재료 배열), steps(조리 순서 4단계 이내 배열)를 채우기.';
+      var prompt = '너는 한국 가정의 냉장고 요리 도우미야. 아래 보유 재료만 써서 지금 100% 만들 수 있는 요리를 4~6개 추천해줘.\n' +
+        '보유 재료: ' + stock.join(', ') + '\n' +
+        '조건: 1) ingredients에는 보유 재료 이름만 넣고, 보유하지 않은 재료는 절대 넣지 마. (물·소금·식용유·후추는 집에 늘 있는 기본 양념이라 예외로 넣어도 됨) ' +
+        '2) 조리 30분 이내 3) 아이도 먹을 수 있는 순한 맛 위주 4) title, minutes(숫자), ingredients(재료 배열), steps(조리 순서 3~5단계 배열)를 채우기 5) 같은 요리를 중복해서 넣지 않기.';
       var out = await geminiJSON([{ text: prompt }], SCHEMA_RECIPES);
       var list = (out && out.recipes) || [];
-      var clean = [];
-      for (var i = 0; i < list.length && i < 6; i++) {
+      var clean = [], stockNow = stockNames(), i;
+      for (i = 0; i < list.length && i < 8; i++) {
         var r = list[i] || {};
         if (!r.title) continue;
+        var ings = (r.ingredients || []).slice(0, 14).map(function (x) { return String(x).slice(0, 30); });
+        if (!ings.length) continue;
+        if (missingIngs(ings, stockNow).length) continue; /* 100% 안 되는 건 담지 않는다 */
         clean.push({
           title: String(r.title).slice(0, 60),
-          reason: String(r.reason || '').slice(0, 160),
           minutes: Math.max(0, Math.round(num(r.minutes))),
-          ingredients: (r.ingredients || []).slice(0, 14).map(function (x) { return String(x).slice(0, 30); }),
-          missing: (r.missing || []).slice(0, 10).map(function (x) { return String(x).slice(0, 30); }),
-          steps: (r.steps || []).slice(0, 8).map(function (x) { return String(x).slice(0, 160); })
+          ingredients: ings,
+          steps: (r.steps || []).slice(0, 8).map(function (x) { return String(x).slice(0, 200); })
         });
       }
-      if (!clean.length) throw new Error('추천을 받지 못했어요. 다시 시도해 주세요.');
-      state.settings.recipes = clean;
-      state.settings.recipesAt = nowIso();
-      markDirty('settings');
-      toast('✨ AI 추천 식단을 업데이트했어요');
+      if (!clean.length) throw new Error('지금 재료로 100% 만들 수 있는 요리를 받지 못했어요. 다시 시도해 주세요.');
+
+      /* 도서관에 이미 있는 요리는 이름으로 비교해 건너뛴다. */
+      var existing = (state.recipes && state.recipes.recipes) || [];
+      var have = {}, key;
+      for (i = 0; i < existing.length; i++) have[recipeKey(existing[i].title)] = 1;
+      var fresh = [], now = Date.now();
+      for (i = 0; i < clean.length; i++) {
+        key = recipeKey(clean[i].title);
+        if (!key || have[key]) continue;
+        have[key] = 1;
+        fresh.push({
+          id: uid('ra'), title: clean[i].title, emoji: '✨', minutes: clean[i].minutes,
+          ingredients: clean[i].ingredients, steps: clean[i].steps,
+          source: 'ai', createdAt: now + i
+        });
+      }
+      ui.recipeAll = false;
+      if (!fresh.length) {
+        toast('새로운 레시피가 없어 기존 목록을 유지했어요');
+      } else {
+        state.recipes.recipes = existing.concat(fresh);
+        state.recipes.updatedAt = nowIso();
+        markDirty('recipes');
+        toast('새 레시피 ' + fresh.length + '개 추가됐어요');
+      }
     } catch (e) {
       toast(msgForError(e), true);
     } finally {
@@ -3221,6 +3353,7 @@
     cloud.sha = loadShaCache();
     var local = loadLocal();
     if (local) hydrateLocal(local);
+    if (!(state.recipes && state.recipes.recipes.length)) state.recipes = seedRecipes();
     cloud.conn = loadDevice();
     renderSyncPill();
     if (!cloud.conn) { showGate('setup'); return; }
@@ -3266,7 +3399,7 @@
   async function loadRemote() {
     if (!cloud.conn || !cloud.me) return;
     setSync('syncing');
-    var r = await Promise.all([ghGet(PATH_INV), ghGet(PATH_MEALS), ghGet(PATH_SET), ghGet(PATH_DAILY)]);
+    var r = await Promise.all([ghGet(PATH_INV), ghGet(PATH_MEALS), ghGet(PATH_SET), ghGet(PATH_DAILY), ghGet(PATH_RECIPES)]);
     var okAll = true;
 
     if (r[0].ok && r[0].data && !cloud.dirty.inventory) {
@@ -3289,6 +3422,16 @@
     if (r[3].ok && r[3].data && !cloud.dirty.daily) state.daily = normalizeDaily(r[3].data);
     else if (r[3].ok && r[3].missing) cloud.dirty.daily = true;
     else if (!r[3].ok) okAll = false;
+
+    /* 레시피 도서관: 없으면 기본 요리로 한 번만 만들고, 있으면 그대로 불러온다. */
+    if (!r[4].ok) { okAll = false; if (!(state.recipes && state.recipes.recipes.length)) state.recipes = seedRecipes(); }
+    else if (cloud.dirty.recipes) { /* 이 기기에 아직 저장 안 된 변경이 있으면 그대로 둔다 */ }
+    else if (r[4].missing || !r[4].data || Object.prototype.toString.call(r[4].data.recipes) !== '[object Array]') {
+      state.recipes = seedRecipes();
+      if (canEdit()) cloud.dirty.recipes = true;
+    } else {
+      state.recipes = normalizeRecipes(r[4].data);
+    }
 
     try { backfillDaily(); } catch (e) { /* 기록 백필 실패는 무시 */ }
 
@@ -3406,7 +3549,13 @@
       return;
     }
     if (act === 'recipe-toggle') { ui.recipeAll = !ui.recipeAll; renderRecipes(); return; }
-    if (act === 'ai-refresh') { refreshAI(); return; }
+    if (act === 'recipe-refresh') { refreshAI(); return; }
+    if (act === 'recipe-expand') {
+      /* 카드 안의 링크·버튼을 누를 때는 접기/펼치기를 하지 않아요. */
+      if (e.target && e.target.closest && e.target.closest('a,button')) return;
+      toggleRecipeCard(el);
+      return;
+    }
 
     if (act === 'receipt-open') { openReceipt(); return; }
     if (act === 'receipt-pick') {
@@ -3535,6 +3684,17 @@
       markDirty('meals'); renderAll(); renderExpense();
       return;
     }
+  });
+
+  /* 레시피 카드는 키보드(Enter/Space)로도 접었다 펼 수 있어요. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    var t = e.target;
+    if (!t || !t.closest || t.closest('a,button,input,select,textarea')) return;
+    var card = t.closest('[data-act="recipe-expand"]');
+    if (!card) return;
+    e.preventDefault();
+    toggleRecipeCard(card);
   });
 
   document.addEventListener('input', function (e) {
