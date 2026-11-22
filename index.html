@@ -343,6 +343,14 @@
   .gate-brand h1{ margin:0; font-size:21px; font-weight:900; }
   .gate-brand p{ margin:3px 0 0; font-size:12.5px; font-weight:800; color:var(--ink-2); }
   .gate-note{ margin:0 0 12px; font-size:13px; font-weight:700; color:#6d6484; line-height:1.6; }
+  /* 첫 로딩: 게이트 화면을 로딩 안내로만 쓰고, 데이터가 다 온 뒤 앱을 한 번에 연다. */
+  .gate[data-loading="1"] .gate-btn,
+  .gate[data-loading="1"] .gate-link,
+  .gate[data-loading="1"] .gate-form,
+  .gate[data-loading="1"] .gate-hint{ display:none !important; }
+  .gate[data-loading="1"] .gate-note{ display:flex; align-items:center; justify-content:center; gap:9px; min-height:44px; margin:0; font-size:14px; font-weight:800; color:#5b6f8a; }
+  .gate[data-loading="1"] .gate-note::before{ content:''; flex:0 0 auto; width:15px; height:15px; border-radius:50%; border:2.5px solid #dfe6f0; border-top-color:#7c5cfc; animation:gateSpin .75s linear infinite; }
+  @keyframes gateSpin{ to{ transform:rotate(360deg); } }
   .gate-btn{
     display:flex; align-items:center; justify-content:center; gap:7px; width:100%; min-height:54px;
     border:none; border-radius:17px; background:linear-gradient(135deg,#8ed8ff,#7c5cfc); color:#fff;
@@ -428,6 +436,7 @@
   .set-sec .badge.ok{ background:#eefaf3; color:#0f7a55; }
   .set-sec .row{ display:flex; gap:7px; flex-wrap:wrap; margin-top:7px; }
   .set-sec input{ flex:1 1 180px; min-height:44px; padding:7px 11px; border-radius:11px; border:2px solid #e6dccf; background:#fffdf9; font-size:13.5px; font-weight:800; color:var(--ink); }
+  .set-sec .set-cap{ flex:1 1 100%; font-size:11.5px; font-weight:900; color:#8a7f70; }
   .set-info{ font-size:11.5px; font-weight:700; color:#8a93a8; line-height:1.7; }
   .set-info code{ background:#f4f1ea; border-radius:5px; padding:1px 4px; font-size:10.5px; }
 
@@ -681,7 +690,7 @@
   <section class="card meals" id="mealSec"></section>
 </div>
 
-<div class="gate" id="gateScreen" hidden>
+<div class="gate" id="gateScreen" data-loading="1">
   <div class="gate-card">
     <div class="gate-brand">
       <span class="gate-logo">🧊</span>
@@ -690,7 +699,7 @@
         <p>가족만 들어올 수 있어요</p>
       </div>
     </div>
-    <p class="gate-note" id="gateMsg">가족 허브에서 로그인하면 여기서도 바로 이어서 쓸 수 있어요.</p>
+    <p class="gate-note" id="gateMsg">데이터를 불러오는 중…</p>
     <a class="gate-btn" id="gateHomeLink" href="../home/"><svg class="hub-ico" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="1.2" y="1.2" width="5.9" height="5.9" rx="2"/><rect x="8.9" y="1.2" width="5.9" height="5.9" rx="2"/><rect x="1.2" y="8.9" width="5.9" height="5.9" rx="2"/><rect x="8.9" y="8.9" width="5.9" height="5.9" rx="2"/></svg>가족 홈으로 가기</a>
     <button class="gate-link" type="button" data-act="gate-connect">기기가 아직 연결되지 않았나요? 직접 연결하기</button>
     <form class="gate-form" id="gateForm" hidden autocomplete="off">
@@ -799,6 +808,10 @@
   var TAB_KEY = 'fridgeDashboard.tab.v1';
   var RECIPE_SORT_KEY = 'fridgeDashboard.recipeSort.v1';
   var BUDGET_DEFAULT = 700000;
+  var LOW_PCT_DEFAULT = 25;      /* '거의 다 씀' 표시 기준 남은 양(%) */
+  var PCT_MIN_DEFAULT = 25;      /* 새 재료의 최소 남은 양(%) */
+  var MIN_QTY_DEFAULT = 1;       /* 새 재료의 최소 수량 */
+  var BOOT_WAIT_MS = 6000;       /* 첫 로딩에서 원격 데이터를 기다리는 최대 시간 */
   var PATH_INV = 'fridge/inventory.json';
   var PATH_MEALS = 'fridge/meals.json';
   var PATH_SET = 'fridge/settings.json';
@@ -958,8 +971,8 @@
   function emptyState() {
     return {
       inventory: { version: 1, updatedAt: '', items: [] },
-      meals: { version: 1, updatedAt: '', budget: BUDGET_DEFAULT, weeks: {}, expenses: [] },
-      settings: { version: 1, updatedAt: '', recipes: [], recipesAt: '', prefs: {}, links: {} },
+      meals: { version: 1, updatedAt: '', budget: 0, weeks: {}, expenses: [] },
+      settings: { version: 1, updatedAt: '', recipes: [], recipesAt: '', prefs: {}, links: {}, budgetDefault: BUDGET_DEFAULT, lowPct: LOW_PCT_DEFAULT, pctMinDefault: PCT_MIN_DEFAULT, minQtyDefault: MIN_QTY_DEFAULT },
       recipes: { version: 1, updatedAt: '', recipes: [] },
       daily: { version: 1, updatedAt: '', days: {} }
     };
@@ -1009,7 +1022,18 @@
   function pctClamp(v) { var n = Math.round(num(v)); return n < 0 ? 0 : (n > 100 ? 100 : n); }
   function qtyClamp(q, u) { return isPctUnit(u) ? pctClamp(q) : Math.max(0, num(q)); }
   function qtyStep(u) { return isPctUnit(u) ? 25 : 1; }
-  function pctMin(it) { var m = num(it && it.minQty); return pctClamp(m > 0 ? m : 25); }
+  /* 설정 화면에서 바꾸는 기준값 — state.settings에 저장되고 가족 기기와 함께 동기화된다. */
+  function clampRange(v, def, min, max) {
+    var n = Math.round(num(v));
+    if (!isFinite(n) || n === 0) return def;
+    return n < min ? min : (n > max ? max : n);
+  }
+  function lowPct() { return clampRange(state.settings && state.settings.lowPct, LOW_PCT_DEFAULT, 1, 100); }
+  function pctMinDefault() { return clampRange(state.settings && state.settings.pctMinDefault, PCT_MIN_DEFAULT, 1, 100); }
+  function minQtyDefault() { return clampRange(state.settings && state.settings.minQtyDefault, MIN_QTY_DEFAULT, 1, 9999); }
+  function budgetDefault() { return clampRange(state.settings && state.settings.budgetDefault, BUDGET_DEFAULT, 1000, 1000000000); }
+  function effectiveBudget() { var b = Math.round(num(state.meals && state.meals.budget)); return b > 0 ? b : budgetDefault(); }
+  function pctMin(it) { var m = num(it && it.minQty); return pctClamp(m > 0 ? m : pctMinDefault()); }
   function daysAgo(s) {
     var d = parseYmd(s);
     if (!d) return '';
@@ -1070,7 +1094,7 @@
       boughtAt: isYmd(o.boughtAt) ? o.boughtAt : '',
       price: Math.max(0, Math.round(num(o.price))),
       staple: !!o.staple,
-      minQty: isPctUnit(unit) ? Math.max(1, pctMin(o)) : Math.max(1, num(o.minQty) || 1),
+      minQty: isPctUnit(unit) ? Math.max(1, pctMin(o)) : Math.max(1, num(o.minQty) || minQtyDefault()),
       status: status,
       note: String(o.note || '').slice(0, 60),
       category: String(o.category || '').slice(0, 20),
@@ -1090,7 +1114,7 @@
   }
   function normalizeMeals(raw) {
     raw = raw || {};
-    var out = { version: 1, updatedAt: raw.updatedAt || '', budget: Math.max(0, num(raw.budget) || BUDGET_DEFAULT), weeks: {}, expenses: [] };
+    var out = { version: 1, updatedAt: raw.updatedAt || '', budget: Math.max(0, Math.round(num(raw.budget))), weeks: {}, expenses: [] };
     var weeks = raw.weeks || {};
     for (var k in weeks) {
       if (!Object.prototype.hasOwnProperty.call(weeks, k)) continue;
@@ -1156,6 +1180,11 @@
       var tv = String(st[tk] || '').replace(/\s+/g, ' ').trim().slice(0, 20);
       if (tv) out.sectionTitles[tk] = tv;
     }
+    if (raw.prefs && Object.prototype.toString.call(raw.prefs) === '[object Object]') out.prefs = raw.prefs;
+    out.budgetDefault = clampRange(raw.budgetDefault, BUDGET_DEFAULT, 1000, 1000000000);
+    out.lowPct = clampRange(raw.lowPct, LOW_PCT_DEFAULT, 1, 100);
+    out.pctMinDefault = clampRange(raw.pctMinDefault, PCT_MIN_DEFAULT, 1, 100);
+    out.minQtyDefault = clampRange(raw.minQtyDefault, MIN_QTY_DEFAULT, 1, 9999);
     return out;
   }
 
@@ -1609,7 +1638,7 @@
     var jobs = [];
     if (cloud.dirty.inventory) jobs.push({ kind: 'inventory', path: PATH_INV, obj: { version: 1, updatedAt: nowIso(), items: state.inventory.items } });
     if (cloud.dirty.meals) jobs.push({ kind: 'meals', path: PATH_MEALS, obj: { version: 1, updatedAt: nowIso(), budget: state.meals.budget, weeks: state.meals.weeks, expenses: state.meals.expenses } });
-    if (cloud.dirty.settings) jobs.push({ kind: 'settings', path: PATH_SET, obj: { version: 1, updatedAt: nowIso(), prefs: state.settings.prefs, links: state.settings.links, sectionOrder: state.settings.sectionOrder, sectionTitles: state.settings.sectionTitles } });
+    if (cloud.dirty.settings) jobs.push({ kind: 'settings', path: PATH_SET, obj: { version: 1, updatedAt: nowIso(), prefs: state.settings.prefs, links: state.settings.links, sectionOrder: state.settings.sectionOrder, sectionTitles: state.settings.sectionTitles, budgetDefault: budgetDefault(), lowPct: lowPct(), pctMinDefault: pctMinDefault(), minQtyDefault: minQtyDefault() } });
     if (cloud.dirty.recipes) jobs.push({ kind: 'recipes', path: PATH_RECIPES, obj: { version: 1, updatedAt: nowIso(), recipes: state.recipes.recipes } });
     if (cloud.dirty.daily) jobs.push({ kind: 'daily', path: PATH_DAILY, obj: { version: 1, updatedAt: nowIso(), days: state.daily.days } });
     var failed = null;
@@ -1839,7 +1868,7 @@
 
   function renderBudget() {
     var card = $('budgetCard'); if (!card) return;
-    var b = Math.max(0, num(state.meals.budget) || BUDGET_DEFAULT);
+    var b = effectiveBudget();
     var s = monthSpent();
     var pct = b > 0 ? Math.min(100, Math.round(s.total / b * 100)) : 0;
     var over = s.total > b;
@@ -1983,7 +2012,7 @@
     for (var i = 0; i < list.length; i++) {
       var it = list[i];
       var pct = isPctUnit(it.unit) ? pctClamp(it.qty) : -1;
-      var pctLow = pct >= 0 && it.status === 'in' && pct <= 25;
+      var pctLow = pct >= 0 && it.status === 'in' && pct <= lowPct();
       var meta = [];
       meta.push(it.boughtAt ? (it.boughtAt.slice(5).replace('-', '/') + ' (' + daysAgo(it.boughtAt) + ')') : '구매일 없음');
       if (pct >= 0) meta.push('남은 양 ' + pct + '%');
@@ -2715,7 +2744,7 @@
     var body = $('statsBody'); if (!body) return;
     var now = new Date(), m = todayStr().slice(0, 7);
     var s = monthSpent();
-    var b = Math.max(0, num(state.meals.budget) || BUDGET_DEFAULT);
+    var b = effectiveBudget();
     var remain = b - s.total;
     var last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     var regN = 0, useN = 0, mealDays = 0, i, dd;
@@ -3481,9 +3510,27 @@
       '</div>' +
       '<div class="set-sec">' +
         '<h3>💰 월 식비 목표</h3>' +
-        '<div class="row"><input id="budgetInput" type="number" min="0" step="10000" inputmode="numeric" value="' + esc(state.meals.budget || BUDGET_DEFAULT) + '">' +
-        (ui.readOnly ? '<span class="badge">보기 전용</span>' : '<button class="btn sm" type="button" data-act="budget-save">저장</button>') + '</div>' +
-        '<p class="set-info" style="margin-top:6px">이번 달 재료 구매 가격과 직접 기록한 지출을 합쳐서 보여줘요.</p>' +
+        '<p class="set-info">이번 달 재료 구매 가격과 직접 기록한 지출을 합쳐서 보여줘요.</p>' +
+        '<div class="row"><span class="set-cap">이번 달 목표 (원)</span><input id="budgetInput" type="number" min="0" step="10000" inputmode="numeric" value="' + esc(effectiveBudget()) + '"></div>' +
+        '<div class="row"><span class="set-cap">기본 목표 · 매달 처음 값 (원)</span><input id="budgetDefaultInput" type="number" min="1000" step="10000" inputmode="numeric" value="' + esc(budgetDefault()) + '"' + (ui.readOnly ? ' disabled' : '') + '></div>' +
+        '<div class="row">' +
+          (ui.readOnly ? '<span class="badge">보기 전용</span>' :
+            '<button class="btn sm" type="button" data-act="budget-save">저장</button>' +
+            '<button class="btn sm ghost" type="button" data-act="budget-reset">기본값 ' + fmtWon(BUDGET_DEFAULT) + '원으로</button>') +
+        '</div>' +
+      '</div>' +
+      '<div class="set-sec">' +
+        '<h3>📐 알림 · 경고 기준</h3>' +
+        '<p class="set-info">재료의 남은 양에 따라 \'거의 다 씀\' 표시와 장보기 목록 기준이 달라져요.</p>' +
+        '<div class="row"><span class="set-cap">\'거의 다 씀\' 경고 기준 (남은 양 %)</span><input id="lowPctInput" type="number" min="1" max="100" step="5" inputmode="numeric" value="' + lowPct() + '"' + (ui.readOnly ? ' disabled' : '') + '></div>' +
+        '<div class="row"><span class="set-cap">새 재료의 최소 남은 양 (%)</span><input id="pctMinInput" type="number" min="1" max="100" step="5" inputmode="numeric" value="' + pctMinDefault() + '"' + (ui.readOnly ? ' disabled' : '') + '></div>' +
+        '<div class="row"><span class="set-cap">새 재료의 최소 수량 (개 · g 등)</span><input id="minQtyInput" type="number" min="1" step="1" inputmode="numeric" value="' + minQtyDefault() + '"' + (ui.readOnly ? ' disabled' : '') + '></div>' +
+        '<div class="row">' +
+          (ui.readOnly ? '' :
+            '<button class="btn sm" type="button" data-act="thr-save">저장</button>' +
+            '<button class="btn sm ghost" type="button" data-act="thr-reset">기본값 ' + LOW_PCT_DEFAULT + '% · ' + PCT_MIN_DEFAULT + '% · ' + MIN_QTY_DEFAULT + '으로</button>') +
+        '</div>' +
+        '<p class="set-info" style="margin-top:6px">이미 저장된 재료는 각자 정한 기준을 그대로 쓰고, 새로 추가하는 재료에 여기 값이 기본으로 들어가요.</p>' +
       '</div>' +
       '<div class="set-sec">' +
         '<h3>☁️ 저장</h3>' +
@@ -3560,7 +3607,7 @@
 
   function showLock() {
     $('appRoot').hidden = true;
-    $('gateScreen').hidden = true;
+    if ($('gateScreen')) { $('gateScreen').hidden = true; $('gateScreen').removeAttribute('data-loading'); }
     $('lockScreen').hidden = false;
     var who = $('lockWho');
     if (who) {
@@ -3573,6 +3620,7 @@
     $('appRoot').hidden = true;
     if ($('lockScreen')) $('lockScreen').hidden = true;
     $('gateScreen').hidden = false;
+    $('gateScreen').removeAttribute('data-loading');
     ui.gateMode = mode || '';
     var note = $('gateMsg');
     if (note) note.textContent = msg || (mode === 'setup'
@@ -3646,14 +3694,29 @@
 
   function enterApp() {
     lsSet(HUB_LAST_KEY, 'fridge'); /* 가족 허브(/home/)의 '최근 사용' 표시용 */
-    $('gateScreen').hidden = true;
-    if ($('lockScreen')) $('lockScreen').hidden = true;
-    $('appRoot').hidden = false;
     initTab();
     applyUserUi();
     renderAll();
-    loadRemote();
     aiSyncShared();
+    return showLoadingThenApp();
+  }
+
+  function waitMs(ms) { return new Promise(function (res) { window.setTimeout(res, ms); }); }
+
+  /* 첫 로딩: 게이트의 로딩 안내를 보여 준 채 원격 데이터를 기다리고, 다 오면 앱을 한 번에 연다.
+     네트워크가 없거나 BOOT_WAIT_MS를 넘기면 기기에 있던 자료로 바로 넘어간다. */
+  async function showLoadingThenApp() {
+    var gate = $('gateScreen');
+    $('appRoot').hidden = true;
+    if ($('lockScreen')) $('lockScreen').hidden = true;
+    if (gate) { gate.hidden = false; gate.setAttribute('data-loading', '1'); }
+    var msg = $('gateMsg'); if (msg) msg.textContent = '데이터를 불러오는 중…';
+    if (navigator.onLine !== false) {
+      try { await Promise.race([loadRemote(), waitMs(BOOT_WAIT_MS)]); } catch (e) { /* 캐시로 계속 */ }
+    }
+    renderAll();
+    if (gate) { gate.hidden = true; gate.removeAttribute('data-loading'); }
+    $('appRoot').hidden = false;
   }
 
   async function loadRemote() {
@@ -3915,10 +3978,49 @@
     if (act === 'budget-save') {
       if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
       var b = Math.max(0, Math.round(num(fieldVal('budgetInput'))));
+      var bd = Math.max(0, Math.round(num(fieldVal('budgetDefaultInput'))));
       if (!b) { toast('목표 금액을 넣어 주세요.', true); return; }
+      if (bd < 1000) { toast('기본 목표는 1,000원 이상으로 넣어 주세요.', true); return; }
       state.meals.budget = b;
-      markDirty('meals'); renderAll(); renderSettings();
+      state.settings.budgetDefault = bd;
+      markDirty('meals'); markDirty('settings');
+      renderAll(); renderSettings();
       toast('💰 월 식비 목표를 ' + fmtWon(b) + '원으로 저장했어요');
+      return;
+    }
+    if (act === 'budget-reset') {
+      if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
+      state.meals.budget = BUDGET_DEFAULT;
+      state.settings.budgetDefault = BUDGET_DEFAULT;
+      markDirty('meals'); markDirty('settings');
+      renderAll(); renderSettings();
+      toast('💰 월 식비 목표를 기본값 ' + fmtWon(BUDGET_DEFAULT) + '원으로 되돌렸어요');
+      return;
+    }
+    if (act === 'thr-save') {
+      if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
+      var lp = Math.round(num(fieldVal('lowPctInput')));
+      var pm = Math.round(num(fieldVal('pctMinInput')));
+      var mq = Math.round(num(fieldVal('minQtyInput')));
+      if (!(lp >= 1 && lp <= 100)) { toast('경고 기준은 1~100 사이로 넣어 주세요.', true); return; }
+      if (!(pm >= 1 && pm <= 100)) { toast('최소 남은 양은 1~100 사이로 넣어 주세요.', true); return; }
+      if (!(mq >= 1)) { toast('최소 수량은 1 이상으로 넣어 주세요.', true); return; }
+      state.settings.lowPct = lp;
+      state.settings.pctMinDefault = pm;
+      state.settings.minQtyDefault = mq;
+      markDirty('settings');
+      renderAll(); renderSettings();
+      toast('📐 기준값을 저장했어요');
+      return;
+    }
+    if (act === 'thr-reset') {
+      if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
+      state.settings.lowPct = LOW_PCT_DEFAULT;
+      state.settings.pctMinDefault = PCT_MIN_DEFAULT;
+      state.settings.minQtyDefault = MIN_QTY_DEFAULT;
+      markDirty('settings');
+      renderAll(); renderSettings();
+      toast('📐 기준값을 기본값으로 되돌렸어요');
       return;
     }
     if (act === 'sync-now') { flushSync(); toast('☁️ 동기화를 시작했어요'); return; }
