@@ -3242,13 +3242,13 @@
       if (!it.include) continue;
       var name = String(it.name || '').trim();
       if (!name) continue;
-      var added = upsertItem({
+      var item = upsertItem({
         name: name, qty: Math.max(0, num(it.qty)), unit: it.unit || '개', storage: it.storage,
         boughtAt: isYmd(date) ? date : todayStr(), price: Math.max(0, Math.round(num(it.price)))
       });
       if (num(it.qty) > 0) {
         if (isYmd(date) && date !== todayStr()) touchDate(date);
-        else logDaily('bought', added, it.qty);
+        else logDaily('bought', item, it.qty);
       }
       added++;
     }
