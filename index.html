@@ -436,6 +436,12 @@
   .set-sec .badge.ok{ background:#eefaf3; color:#0f7a55; }
   .set-sec .row{ display:flex; gap:7px; flex-wrap:wrap; margin-top:7px; }
   .set-sec input{ flex:1 1 180px; min-height:44px; padding:7px 11px; border-radius:11px; border:2px solid #e6dccf; background:#fffdf9; font-size:13.5px; font-weight:800; color:var(--ink); }
+  .ai-pick{ display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
+  .ai-btn{ flex:1 1 92px; min-height:56px; border-radius:14px; border:2px solid #e6dccf; background:#fffdf9; color:var(--ink); font-family:inherit; font-size:13px; font-weight:900; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:6px 8px; cursor:pointer; }
+  .ai-btn small{ font-size:10.5px; font-weight:800; color:#a2937f; }
+  .ai-btn.on{ border-color:#5ac8fa; background:linear-gradient(135deg,#eef9ff 0%,#f3efff 100%); box-shadow:0 2px 0 #cfe9fb; }
+  .ai-btn.on small{ color:#2f6fb5; }
+  .ai-btn.off{ opacity:.55; }
   .set-sec .set-cap{ flex:1 1 100%; font-size:11.5px; font-weight:900; color:#8a7f70; }
   .set-info{ font-size:11.5px; font-weight:700; color:#8a93a8; line-height:1.7; }
   .set-info code{ background:#f4f1ea; border-radius:5px; padding:1px 4px; font-size:10.5px; }
@@ -817,8 +823,27 @@
   var PATH_SET = 'fridge/settings.json';
   var PATH_DAILY = 'fridge/daily.json';
   var PATH_RECIPES = 'fridge/recipes.json';
-  var GEMINI_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-4-hydrogen', 'gemini-3.6-flash', 'gemini-2.5-flash-lite'];
-  var MODEL_CACHE_KEY = 'fridgeDashboard.geminiModel.v1';
+
+  /* ---------- AI 제공자 ----------
+     키는 가족 AI 사무실과 같은 config/ai.json(Gemini·OpenRouter·Groq)을 함께 읽는다.
+     모델 ID는 2026-11-26 실제 응답을 확인한 것만 넣었다(빠른 모델을 앞에).
+     vision 목록이 빈 제공자는 사진 인식을 건너뛰고 다음 제공자로 넘어간다. */
+  var AI_PROVIDERS = [
+    { id: 'gemini', label: 'Gemini',
+      text: ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite'],
+      vision: ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite'] },
+    { id: 'openrouter', label: 'OpenRouter',
+      text: ['particle-ai/particle-1:free', 'baidu/ernie-5.5-flash-preview:free', 'nvidia/nemotron-3.5-lightning:free'],
+      vision: ['particle-ai/particle-1:free', 'inclusionai/ling-3.2-flash:free', 'google/gemma-4-31b-it:free'] },
+    { id: 'groq', label: 'Groq',
+      text: ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'],
+      vision: [] }
+  ];
+  var AI_TIMEOUT_MS = 20000;   /* 한 번의 AI 요청은 20초까지만 기다린다 */
+  var AI_KEYS_KEY = 'fridgeDashboard.aiKeys.v1';
+  var AI_PREF_KEY = 'fridgeDashboard.aiProvider.v1';
+  var IMG_MAX_DIM = 1000;      /* 영수증 사진은 긴 변 1000px */
+  var IMG_QUALITY = 0.72;      /* 모바일 LTE에서도 빨리 올라가게 */
 
   var ROLES = {
     admin: { label: '관리자', edit: 1 },
@@ -1456,9 +1481,10 @@
     return { ok: false, status: 409, error: '다른 기기에서 먼저 저장했어요' };
   }
 
-  /* ============ 가족 공유 Gemini 키 (AES-GCM) ============
+  /* ============ 가족 공유 AI 설정 (AES-GCM) ============
      config/ai.json 에 암호문만 올려 두고, 가족 저장소에 연결된 모든 기기가
-     같은 암호키(저장소 주소에서 유도)로 풀어서 씁니다. 평문은 GitHub에 남지 않아요. */
+     같은 암호키(저장소 주소에서 유도)로 풀어서 씁니다. 평문은 GitHub에 남지 않아요.
+     형식은 가족 AI 사무실(office.html)과 같아서 양쪽에서 같이 씁니다. */
   function aiCrypto() { return (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null; }
   function aiPass() {
     var c = cloud.conn || {};
@@ -1486,44 +1512,145 @@
     var base = await sub.importKey('raw', raw, { name: 'PBKDF2' }, false, ['deriveKey']);
     return sub.deriveKey({ name: 'PBKDF2', salt: salt, iterations: Math.max(1, Number(iter) || 1), hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
   }
-  async function aiEncrypt(keyStr) {
+  async function aiSeal(obj) {
     var sub = aiCrypto();
     if (!sub) throw new Error('이 브라우저에서는 암호화를 쓸 수 없어요');
     var salt = window.crypto.getRandomValues(new Uint8Array(16));
     var iv = window.crypto.getRandomValues(new Uint8Array(12));
     var k = await aiKey(salt, AI_ITER);
-    var ct = await sub.encrypt({ name: 'AES-GCM', iv: iv }, k, new TextEncoder().encode(JSON.stringify({ key: String(keyStr) })));
+    var ct = await sub.encrypt({ name: 'AES-GCM', iv: iv }, k, new TextEncoder().encode(JSON.stringify(obj && typeof obj === 'object' ? obj : {})));
     return { version: 1, alg: 'AES-GCM', kdf: 'PBKDF2-SHA256', iter: AI_ITER, salt: aiB64(salt), iv: aiB64(iv), ct: aiB64(ct), updatedAt: nowIso() };
   }
-  async function aiDecrypt(p) {
-    if (!p || !p.iv || !p.ct) return '';
+  async function aiOpen(p) {
+    if (!p || !p.iv || !p.ct) return null;
     var sub = aiCrypto();
-    if (!sub) return '';
+    if (!sub) return null;
     var k = await aiKey(p.salt ? aiUnB64(p.salt) : null, Number(p.iter) || 1);
     var pt = await sub.decrypt({ name: 'AES-GCM', iv: aiUnB64(p.iv) }, k, aiUnB64(p.ct));
     var txt = new TextDecoder('utf-8').decode(new Uint8Array(pt));
     var j = null;
     try { j = JSON.parse(txt); } catch (e) { j = null; }
-    return (j && typeof j === 'object') ? String(j.key || '') : String(txt || '');
+    if (j && typeof j === 'object') return j;
+    return txt ? { key: String(txt) } : null;
+  }
+  async function aiDecrypt(p) {
+    var j = null;
+    try { j = await aiOpen(p); } catch (e) { j = null; }
+    return j ? String(j.key || j.gemini || '') : '';
   }
   function aiState() { try { return JSON.parse(lsGet(AI_STATE_KEY) || '{}') || {}; } catch (e) { return {}; } }
   function aiSetState(o) { lsSet(AI_STATE_KEY, JSON.stringify(o || {})); }
   function sharedKey() { return String(lsGet(KEY_SHARED_KEY) || '').trim(); }
   function keyOrigin() { return sharedKey() ? 'shared' : (lsGet(KEY_KEY) ? 'local' : ''); }
+
+  /* 제공자별 키 — 이 기기에 들고 있다가, 가족 공유 설정을 읽을 때 갱신된다. */
+  function aiKeyMap() {
+    var m = {};
+    try { m = JSON.parse(lsGet(AI_KEYS_KEY) || '{}') || {}; } catch (e) { m = {}; }
+    return (m && typeof m === 'object') ? m : {};
+  }
+  function aiSetKeyMap(m) { try { lsSet(AI_KEYS_KEY, JSON.stringify(m || {})); } catch (e) {} }
+  function aiKeyOf(pid) {
+    var v = String(aiKeyMap()[pid] || '').trim();
+    if (pid === 'gemini' && !v) v = sharedKey() || String(lsGet(KEY_KEY) || '').trim();
+    return v;
+  }
+  function aiProviderById(pid) {
+    for (var i = 0; i < AI_PROVIDERS.length; i++) if (AI_PROVIDERS[i].id === pid) return AI_PROVIDERS[i];
+    return null;
+  }
+  function aiReadyProviders(vision) {
+    var out = [];
+    for (var i = 0; i < AI_PROVIDERS.length; i++) {
+      var p = AI_PROVIDERS[i];
+      if (!aiKeyOf(p.id)) continue;
+      if (vision && !p.vision.length) continue;
+      out.push(p);
+    }
+    return out;
+  }
+  function aiReady(vision) { return aiReadyProviders(!!vision).length > 0; }
+  function aiPref() {
+    var v = String(lsGet(AI_PREF_KEY) || '').trim();
+    return aiProviderById(v) ? v : '';
+  }
+  function aiSetPref(pid) { try { lsSet(AI_PREF_KEY, String(pid || '')); } catch (e) {} }
+  /* 고른 제공자를 1순위로, 나머지 둘을 뒤에 붙인다. */
+  function aiOrder(vision) {
+    var list = aiReadyProviders(vision), pref = aiPref(), out = [], i;
+    for (i = 0; i < list.length; i++) if (list[i].id === pref) out.push(list[i]);
+    for (i = 0; i < list.length; i++) if (list[i].id !== pref) out.push(list[i]);
+    return out;
+  }
+
+  /* 가족 AI 설정(config/ai.json)에서 제공자 키를 꺼내는 규칙 — office.html과 같다.
+     {geminiKeys:[],openrouterKeys:[],groqKeys:[]} 또는 {gemini,openrouter,groq,key} 둘 다 읽는다. */
+  function keysFromAiConfig(obj) {
+    var out = { gemini: '', openrouter: '', groq: '' };
+    if (!obj || typeof obj !== 'object') return out;
+    for (var i = 0; i < AI_PROVIDERS.length; i++) {
+      var pid = AI_PROVIDERS[i].id, arr = obj[pid + 'Keys'], v = '';
+      if (Object.prototype.toString.call(arr) === '[object Array]') {
+        for (var j = 0; j < arr.length; j++) {
+          var s = String(arr[j] == null ? '' : arr[j]).trim();
+          if (s) { v = s; break; }
+        }
+      }
+      if (!v) v = String((pid === 'gemini' ? (obj.key || obj.gemini) : obj[pid]) || '').trim();
+      out[pid] = v;
+    }
+    return out;
+  }
+
+  async function aiReadRemoteConfig() {
+    var r = null;
+    try { r = await ghGet(AI_PATH); } catch (e) { return { ok: false, missing: false, obj: null, error: 'offline' }; }
+    if (!r || !r.ok) return { ok: false, missing: false, obj: null, error: (r && r.error) || 'offline' };
+    if (r.missing) return { ok: true, missing: true, obj: null };
+    var obj = null;
+    try { obj = await aiOpen(r.data || {}); } catch (e) { obj = null; }
+    return { ok: true, missing: false, obj: obj, raw: r.data || {} };
+  }
+
+  /* Gemini 키 저장 — 가족 설정을 통째로 덮어쓰지 않고, 다른 제공자 키와 토큰은 그대로 살린다. */
   async function aiPush(keyStr) {
     try {
-      var payload = await aiEncrypt(String(keyStr || ''));
-      var r = await ghPut(AI_PATH, payload, '가족 공유 Gemini 키 저장');
+      var cur = await aiReadRemoteConfig();
+      var obj = (cur && cur.ok && cur.obj) ? cur.obj : {};
+      var next = {};
+      for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) next[k] = obj[k];
+      next.key = String(keyStr || '');
+      next.gemini = String(keyStr || '');
+      var gk = Object.prototype.toString.call(next.geminiKeys) === '[object Array]' ? next.geminiKeys.filter(function (x) { return String(x || '').trim(); }) : [];
+      if (gk.indexOf(String(keyStr || '')) < 0) gk.unshift(String(keyStr || ''));
+      next.geminiKeys = gk;
+      next.updatedAt = nowIso();
+      var payload = await aiSeal(next);
+      var r = await ghPut(AI_PATH, payload, '가족 AI 설정 저장 (Gemini 키)');
       if (!r.ok) return { ok: false, error: r.error || '공유 저장 실패' };
-      return { ok: true, updatedAt: payload.updatedAt };
+      return { ok: true, updatedAt: payload.updatedAt, obj: next };
     } catch (e) {
       return { ok: false, error: '암호화하지 못했어요' };
     }
   }
+  /* Gemini 키만 지운다 — OpenRouter·Groq 키와 토큰은 그대로 살린다. */
   async function aiClearRemote() {
     try {
-      var r = await ghPut(AI_PATH, { version: 1, alg: 'AES-GCM', cleared: true, updatedAt: nowIso() }, '가족 공유 Gemini 키 삭제');
-      return { ok: !!r.ok, error: r.error || '' };
+      var cur = await aiReadRemoteConfig();
+      var obj = (cur && cur.ok && cur.obj) ? cur.obj : null;
+      if (!obj) {
+        var r0 = await ghPut(AI_PATH, { version: 1, alg: 'AES-GCM', cleared: true, updatedAt: nowIso() }, '가족 AI 설정에서 Gemini 키 삭제');
+        return { ok: !!r0.ok, error: r0.error || '' };
+      }
+      var next = {};
+      for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) next[k] = obj[k];
+      next.key = '';
+      next.gemini = '';
+      next.geminiKeys = [];
+      next.updatedAt = nowIso();
+      var payload = await aiSeal(next);
+      var r = await ghPut(AI_PATH, payload, '가족 AI 설정에서 Gemini 키 삭제');
+      return { ok: !!r.ok, error: r.error || '', obj: r.ok ? next : null };
     } catch (e) {
       return { ok: false, error: '삭제하지 못했어요' };
     }
@@ -1554,22 +1681,35 @@
     var remoteAt = String(p.updatedAt || '');
     if (p.cleared) {
       lsDel(KEY_SHARED_KEY);
+      aiSetKeyMap({});
       next.source = local ? 'local' : 'none';
       next.updatedAt = remoteAt;
       aiSetState(next); renderSettings(); return;
     }
-    var remoteKey = '';
-    try { remoteKey = await aiDecrypt(p); } catch (e) { remoteKey = ''; }
-    if (!remoteKey) {
+    var obj = null;
+    try { obj = await aiOpen(p); } catch (e) { obj = null; }
+    if (!obj) {
       next.source = sharedKey() ? 'shared' : (local ? 'local' : 'none');
       next.note = 'decrypt';
       aiSetState(next); renderSettings(); return;
     }
+    var km = keysFromAiConfig(obj);
+    aiSetKeyMap(km);
+    var remoteKey = km.gemini || '';
+    /* Gemini 키 없이 OpenRouter·Groq만 있는 설정도 정상이다. */
+    if (!remoteKey) {
+      lsDel(KEY_SHARED_KEY);
+      next.source = local ? 'local' : 'none';
+      next.updatedAt = remoteAt;
+      aiSetState(next); renderSettings(); renderRecipes(); return;
+    }
     /* 이 기기에서 방금 저장한 키가 더 최신이면 이쪽을 올려서 가족 키로 맞춘다 */
     if (local && st.source === 'local' && st.updatedAt && (!remoteAt || st.updatedAt > remoteAt) && canEdit()) {
       var up2 = await aiPush(local);
-      if (up2.ok) { lsSet(KEY_SHARED_KEY, local); next.source = 'shared'; next.updatedAt = up2.updatedAt; }
-      else { next.source = 'local'; next.note = up2.error || 'error'; }
+      if (up2.ok) {
+        lsSet(KEY_SHARED_KEY, local); next.source = 'shared'; next.updatedAt = up2.updatedAt;
+        aiSetKeyMap(keysFromAiConfig(up2.obj));
+      } else { next.source = 'local'; next.note = up2.error || 'error'; }
       aiSetState(next); renderSettings(); return;
     }
     lsSet(KEY_SHARED_KEY, remoteKey);
@@ -3104,13 +3244,11 @@
   }
 
   /* ---------- 영수증 ---------- */
-  function getKey() { return sharedKey() || String(lsGet(KEY_KEY) || '').trim(); }
-
   function renderReceipt() {
     var body = $('receiptBody'); if (!body) return;
     var rec = ui.rec || { step: 'pick' };
     if (rec.step === 'busy') {
-      body.innerHTML = '<div class="spin"><div class="ring"></div><p>영수증을 읽는 중…</p><p class="note">사진은 저장하지 않아요</p></div>';
+      body.innerHTML = '<div class="spin"><div class="ring"></div><p>' + esc(rec.status || '영수증을 읽는 중…') + '</p><p class="note">사진은 저장하지 않아요</p></div>';
       return;
     }
     if (rec.step === 'error') {
@@ -3151,13 +3289,13 @@
         '<input type="file" id="receiptFile" accept="image/*" capture="environment" hidden>';
       return;
     }
-    var key = getKey();
+    var key = aiReady(true);
     body.innerHTML = '<div class="rec-drop">📷<b>영수증 사진으로 한 번에 등록</b>' +
       '<p>마트 영수증이나 장보기 목록 사진을 올리면<br>재료·수량·가격·보관 구분을 자동으로 읽어요.</p></div>' +
       '<input type="file" id="receiptFile" accept="image/*" capture="environment" hidden>' +
       (key ?
         '<button class="btn wide" type="button" data-act="receipt-pick">사진 찍기 / 고르기</button>' :
-        '<div class="guide"><b>✨ 자동 인식을 쓰려면 Gemini API 키가 필요해요</b>' +
+        '<div class="guide"><b>✨ 자동 인식을 쓰려면 AI 키가 필요해요</b>' +
         '<p>무료 키를 발급해 ⚙️ 설정에 넣으면 영수증이 자동으로 정리돼요.</p>' +
         '<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey 에서 무료 키 발급</a>' +
         '<div><button class="btn" type="button" data-act="settings-open">⚙️ 설정에서 키 넣기</button></div></div>') +
@@ -3197,18 +3335,25 @@
   }
 
   async function analyzeReceipt(file) {
-    ui.rec = { step: 'busy' };
+    ui.rec = { step: 'busy', status: '영수증을 읽는 중…' };
     renderReceipt();
     try {
-      if (!getKey()) throw new Error('NO_KEY');
+      if (!aiReady(true)) throw new Error('NO_KEY');
       if (!/^image\//.test(file.type || '')) throw new Error('이미지 파일만 올릴 수 있어요.');
-      var dataUrl = await shrinkImage(file, 1400, 0.85);
+      var dataUrl = await shrinkImage(file, IMG_MAX_DIM, IMG_QUALITY);
       var mime = (/^data:(.*?);/.exec(dataUrl) || [])[1] || 'image/jpeg';
       var b64 = dataUrl.split(',')[1];
-      var out = await geminiJSON([
-        { text: PROMPT_RECEIPT },
-        { inline_data: { mime_type: mime, data: b64 } }
-      ], SCHEMA_RECEIPT);
+      var out = await aiJSON({ text: PROMPT_RECEIPT, image: { mime: mime, b64: b64 } }, SCHEMA_RECEIPT, {
+        vision: true,
+        validate: function (d) { return !!(d && Object.prototype.toString.call(d.items) === '[object Array]' && d.items.length); },
+        onStatus: function (st) {
+          var txt;
+          if (!st.tried.length) txt = st.provider.label + '로 사진을 읽는 중…';
+          else txt = st.tried[st.tried.length - 1].label + '가 응답하지 않아 ' + st.provider.label + '로 다시 읽는 중…';
+          ui.rec = { step: 'busy', status: txt };
+          renderReceipt();
+        }
+      });
       var list = (out && out.items) || [];
       var items = [];
       for (var i = 0; i < list.length && i < 40; i++) {
@@ -3259,148 +3404,251 @@
     toast('🧾 ' + added + '개 재료를 등록했어요');
   }
 
-  /* ---------- Gemini ---------- */
+  /* ---------- AI 호출 (Gemini · OpenRouter · Groq) ---------- */
+  function getKey() { return aiKeyOf('gemini'); }
+
   function msgForError(e) {
     var m = (e && e.message) ? e.message : String(e || '');
-    if (m === 'NO_KEY' || m === 'NO_KEY_SET') return '설정에서 Gemini API 키를 먼저 넣어 주세요.';
-    if (/API key not valid|API_KEY_INVALID|API key expired/i.test(m)) return 'API 키가 올바르지 않아요. ⚙️ 설정에서 다시 확인해 주세요.';
-    if (/quota|RESOURCE_EXHAUSTED|429/i.test(m)) return '무료 사용량을 다 썼어요. 잠시 후 다시 시도해 주세요.';
-    if (/네트워크|fetch|Failed to fetch|NetworkError/i.test(m)) return '인터넷에 연결하지 못했어요. 연결을 확인해 주세요.';
+    if (m === 'NO_KEY' || m === 'NO_KEY_SET') return '설정에서 AI 키를 먼저 넣어 주세요.';
+    if (/^TIMEOUT$/.test(m)) return 'AI가 20초 안에 답하지 않았어요. 잠시 후 다시 시도해 주세요.';
+    if (/API key not valid|API_KEY_INVALID|API key expired|invalid[ _]api[ _]key|incorrect api key|unauthorized|HTTP 401|HTTP 403/i.test(m)) return 'AI 키가 올바르지 않아요. ⚙️ 설정에서 다시 확인해 주세요.';
+    if (/quota|RESOURCE_EXHAUSTED|rate.?limit|too many|HTTP 429/i.test(m)) return '무료 사용량을 다 썼어요. 잠시 후 다시 시도해 주세요.';
+    if (/^NETWORK$|네트워크|fetch|Failed to fetch|NetworkError/i.test(m)) return '인터넷에 연결하지 못했어요. 연결을 확인해 주세요.';
+    if (/모델을 찾지 못했/.test(m)) return '쓸 수 있는 AI 모델을 찾지 못했어요. 잠시 후 다시 시도해 주세요.';
+    if (/형식에 맞지 않/.test(m)) return 'AI가 답을 제대로 주지 못했어요. 다시 시도해 주세요.';
     return m || '알 수 없는 오류가 생겼어요.';
   }
 
-  function geminiExtractText(json) {
-    try {
-      var c = json.candidates && json.candidates[0];
-      var parts = (c && c.content && c.content.parts) || [];
-      var out = '';
-      for (var i = 0; i < parts.length; i++) if (parts[i] && parts[i].text) out += parts[i].text;
-      return out;
-    } catch (e) { return ''; }
-  }
   function looseJson(text) {
     var t = String(text || '').trim();
-    t = t.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-    var a = t.indexOf('{'), b = t.lastIndexOf('}');
-    if (a >= 0 && b > a) t = t.slice(a, b + 1);
-    return JSON.parse(t);
+    var f = t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    var tries = [t, f], i;
+    var a1 = f.indexOf('{'), b1 = f.lastIndexOf('}');
+    var a2 = f.indexOf('['), b2 = f.lastIndexOf(']');
+    if (a1 >= 0 && b1 > a1) tries.push(f.slice(a1, b1 + 1));
+    if (a2 >= 0 && b2 > a2) tries.push(f.slice(a2, b2 + 1));
+    for (i = 0; i < tries.length; i++) {
+      if (!tries[i]) continue;
+      try { return JSON.parse(tries[i]); } catch (e) { /* 다음 후보 */ }
+    }
+    throw new Error('JSON 아님');
   }
 
-  function geminiCacheModel(id) {
-    try { if (id) localStorage.setItem(MODEL_CACHE_KEY, id); else localStorage.removeItem(MODEL_CACHE_KEY); } catch (e) {}
-  }
-  function geminiCachedModel() {
-    try { return localStorage.getItem(MODEL_CACHE_KEY) || ''; } catch (e) { return ''; }
+  /* 모델이 배열만 돌려주면 스키마가 기대하는 키에 담아 준다. */
+  function aiNormalize(data, schema) {
+    if (Object.prototype.toString.call(data) !== '[object Array]') return data;
+    if (!schema || !schema.properties) return data;
+    for (var k in schema.properties) {
+      var p = schema.properties[k];
+      if (p && p.type === 'ARRAY') { var o = {}; o[k] = data; return o; }
+    }
+    return data;
   }
 
-  /* 모델 이름이 바뀌어도 죽지 않도록, 실제로 쓸 수 있는 모델 목록을 물어본다. */
-  async function geminiListModels(key) {
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=' + encodeURIComponent(key);
-    var res, json = null;
+  function aiErrText(status, json) {
+    if (json && json.error) {
+      if (typeof json.error === 'string') return json.error;
+      if (json.error.message) return String(json.error.message);
+    }
+    var s = (json && json.message) ? String(json.message) : '';
+    return s || ('HTTP ' + status);
+  }
+
+  /* 이 모델이 없어졌거나 쓸 수 없는 경우 — 같은 AI의 다음 모델로 넘어간다. */
+  function aiModelMissing(status, msg) {
+    if (status === 404) return true;
+    if (status === 400 && /model|not found|not supported|unsupported|deprecat|does not exist/i.test(String(msg || ''))) return true;
+    return false;
+  }
+
+  /* 모든 AI 요청은 20초 안에 끊는다 — '읽는 중…'에서 끝없이 멈춰 있지 않게. */
+  async function aiFetchJson(url, opts) {
+    var ctl = null, timer = 0, k;
+    if (typeof window.AbortController === 'function') ctl = new window.AbortController();
+    var o = {};
+    for (k in (opts || {})) if (Object.prototype.hasOwnProperty.call(opts, k)) o[k] = opts[k];
+    if (ctl) {
+      o.signal = ctl.signal;
+      timer = window.setTimeout(function () { try { ctl.abort(); } catch (e) {} }, AI_TIMEOUT_MS);
+    }
     try {
-      res = await window.fetch(url, { method: 'GET' });
-      try { json = await res.json(); } catch (e) { json = null; }
+      var res = await window.fetch(url, o);
+      var txt = '';
+      try { txt = await res.text(); } catch (e) { txt = ''; }
+      var json = null;
+      try { json = txt ? JSON.parse(txt) : null; } catch (e) { json = null; }
+      return { status: res.status, ok: res.ok, text: txt, json: json };
     } catch (e) {
-      throw new Error('네트워크에 연결하지 못했어요.');
+      if ((e && e.name === 'AbortError') || (ctl && ctl.signal && ctl.signal.aborted)) throw new Error('TIMEOUT');
+      throw new Error('NETWORK');
+    } finally {
+      if (timer) window.clearTimeout(timer);
     }
-    if (!res.ok) {
-      var em = (json && json.error && json.error.message) ? json.error.message : ('HTTP ' + res.status);
-      throw new Error(em);
+  }
+
+  function aiChoiceText(json) {
+    var c = (json && json.choices && json.choices[0]) || null;
+    var m = (c && c.message) || null;
+    var content = m ? m.content : '';
+    if (Object.prototype.toString.call(content) === '[object Array]') {
+      var out = '', i;
+      for (i = 0; i < content.length; i++) if (content[i] && content[i].text) out += content[i].text;
+      return out;
     }
-    var ids = [], list = (json && json.models) || [], i;
+    return String(content == null ? '' : content);
+  }
+
+  function aiExample(s) {
+    if (!s || typeof s !== 'object') return '';
+    if (Object.prototype.toString.call(s.enum) === '[object Array]') return s.enum.join('|');
+    if (s.type === 'OBJECT') {
+      var o = {}, k;
+      for (k in (s.properties || {})) if (Object.prototype.hasOwnProperty.call(s.properties, k)) o[k] = aiExample(s.properties[k]);
+      return o;
+    }
+    if (s.type === 'ARRAY') return [aiExample(s.items)];
+    if (s.type === 'NUMBER') return 0;
+    if (s.type === 'BOOLEAN') return true;
+    return '';
+  }
+  /* 스키마를 통째로 붙이면 모델이 스키마를 그대로 따라 쓰는 경우가 있어서, 짧은 예시 모양만 보여준다. */
+  function aiJsonRule(schema) {
+    if (!schema) return '';
+    try {
+      return '\n\n설명 없이 아래 예시와 같은 모양의 JSON 하나만 출력해(예시 값을 그대로 쓰지 말고 사진·재료에 맞게 채워).\n' + JSON.stringify(aiExample(schema));
+    } catch (e) { return ''; }
+  }
+
+  async function aiCallGemini(key, model, req, schema) {
+    var parts = [{ text: String(req.text || '') }];
+    if (req.image) parts.push({ inline_data: { mime_type: req.image.mime || 'image/jpeg', data: req.image.b64 || '' } });
+    var cfg = { temperature: 0.25, responseMimeType: 'application/json', maxOutputTokens: 3000 };
+    if (schema) cfg.responseSchema = schema;
+    var r = await aiFetchJson('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: parts }], generationConfig: cfg })
+    });
+    var em = aiErrText(r.status, r.json);
+    if (aiModelMissing(r.status, em)) return { missing: true };
+    if (!r.ok) return { err: em, status: r.status };
+    var text = '';
+    try {
+      var ps = (r.json.candidates[0].content.parts) || [];
+      for (var i = 0; i < ps.length; i++) if (ps[i] && ps[i].text) text += ps[i].text;
+    } catch (e) { text = ''; }
+    if (!text) return { err: '응답이 비어 있어요', status: 0 };
+    try { return { data: aiNormalize(looseJson(text), schema) }; } catch (e) { return { err: '응답을 이해하지 못했어요', status: 0 }; }
+  }
+
+  async function aiCallOpenAI(pid, key, model, req, schema) {
+    var url = pid === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+    var headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
+    if (pid === 'openrouter') {
+      headers['HTTP-Referer'] = 'https://jadenfamily.github.io/fridge-dashboard/';
+      headers['X-Title'] = 'jadenfamily fridge';
+    }
+    var text = String(req.text || '') + aiJsonRule(schema);
+    var content = req.image
+      ? [{ type: 'text', text: text }, { type: 'image_url', image_url: { url: 'data:' + (req.image.mime || 'image/jpeg') + ';base64,' + (req.image.b64 || '') } }]
+      : text;
+    var r = await aiFetchJson(url, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ model: model, messages: [{ role: 'user', content: content }], temperature: 0.25, max_tokens: 3000 })
+    });
+    var em = aiErrText(r.status, r.json);
+    if (aiModelMissing(r.status, em)) return { missing: true };
+    if (!r.ok) return { err: em, status: r.status };
+    var out = aiChoiceText(r.json);
+    if (!out) return { err: '응답이 비어 있어요', status: 0 };
+    try { return { data: aiNormalize(looseJson(out), schema) }; } catch (e) { return { err: '응답을 이해하지 못했어요', status: 0 }; }
+  }
+
+  function aiCallProvider(pid, key, model, req, schema) {
+    if (pid === 'gemini') return aiCallGemini(key, model, req, schema);
+    return aiCallOpenAI(pid, key, model, req, schema);
+  }
+
+  /* 모델 이름이 통째로 바뀌었을 때: Gemini가 실제로 쓸 수 있는 모델을 직접 물어본다. */
+  async function geminiDiscover(key) {
+    var r = await aiFetchJson('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key), { method: 'GET' });
+    if (!r.ok || !r.json) return [];
+    var list = r.json.models || [], pref = [], rest = [], i;
     for (i = 0; i < list.length; i++) {
       var m = list[i] || {};
       var id = String(m.name || '').replace(/^models\//, '');
       var methods = m.supportedGenerationMethods || [];
       if (methods.indexOf('generateContent') < 0) continue;
       if (!/^gemini-/.test(id)) continue;
-      if (/(image|tts|live|transcribe|embedding|translate|omni|audio|robotics|computer-use|vision-last)/i.test(id)) continue;
-      ids.push(id);
+      if (/(image|tts|live|transcribe|embedding|translate|omni|audio|robotics|computer-use|deep-research|antigravity)/i.test(id)) continue;
+      if (/(flash-lite|flash).*lite/i.test(id)) pref.push(id);
+      else if (/flash-lite/i.test(id)) pref.push(id);
+      else if (/flash/i.test(id)) rest.push(id);
     }
-    /* 일반 대화용(flash / hydrogen)을 앞으로, 나머지는 뒤로 */
-    var pref = [], rest = [];
-    for (i = 0; i < ids.length; i++) {
-      if (/(flash|hydrogen|pro)/i.test(ids[i])) pref.push(ids[i]); else rest.push(ids[i]);
-    }
-    return pref.concat(rest);
+    return pref.concat(rest).slice(0, 6);
   }
 
-  function geminiTryOrder(extra) {
-    var out = [], seen = {}, i, c = geminiCachedModel();
-    var all = (c ? [c] : []).concat(GEMINI_MODELS).concat(extra || []);
-    for (i = 0; i < all.length; i++) {
-      var id = String(all[i] || '').trim();
-      if (!id || seen[id]) continue;
-      seen[id] = 1; out.push(id);
+  /* 3사 중 고른 AI를 1순위로 부르고, 20초 타임아웃·429·오류·모델 없음이면 다음 AI로 넘어간다. */
+  async function aiJSON(req, schema, opts) {
+    opts = opts || {};
+    var vision = !!opts.vision;
+    var order = aiOrder(vision), tried = [], last = '', i, m;
+    if (!order.length) throw new Error('NO_KEY');
+    for (i = 0; i < order.length; i++) {
+      var p = order[i], key = aiKeyOf(p.id);
+      if (!key) continue;
+      var models = (vision ? p.vision : p.text).slice();
+      if (opts.onStatus) {
+        try { opts.onStatus({ provider: p, tried: tried.slice() }); } catch (e) {}
+      }
+      var missingAll = true, res = null, k;
+      for (k = 0; k < models.length; k++) {
+        try { res = await aiCallProvider(p.id, key, models[k], req, schema); }
+        catch (e) { res = { err: (e && e.message) || 'NETWORK', status: 0 }; }
+        if (res && res.data) {
+          if (!opts.validate || opts.validate(res.data)) { aiRemember(p.id, models[k]); return res.data; }
+          last = p.label + ' 응답이 형식에 맞지 않았어요';
+          missingAll = false;
+          break;
+        }
+        if (res && res.missing) { last = p.label + ' 모델을 찾지 못했어요'; continue; }
+        missingAll = false;
+        last = (res && res.err) ? String(res.err) : 'error';
+        /* 사용량 초과·서버 혼잡은 이 AI의 다른 모델이 받아줄 수 있다. 응답이 느린 경우(시간 초과)는 바로 다음 AI로. */
+        var sc = (res && res.status) || 0;
+        if ((sc === 429 || sc >= 500) && k + 1 < models.length) continue;
+        break;
+      }
+      if (p.id === 'gemini' && missingAll) {
+        var found = [];
+        try { found = await geminiDiscover(key); } catch (e) { found = []; }
+        for (k = 0; k < found.length && k < 4; k++) {
+          var got = null;
+          try { got = await aiCallProvider('gemini', key, found[k], req, schema); } catch (e) { got = null; }
+          if (got && got.data) { aiRemember('gemini', found[k]); return got.data; }
+          if (got && got.missing) continue;
+          last = (got && got.err) ? String(got.err) : last;
+          break;
+        }
+      }
+      tried.push(p);
     }
-    return out;
+    throw new Error(last || 'AI가 답하지 않았어요');
   }
 
-  async function geminiRequest(key, model, parts, schema) {
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(key);
-    var cfg = { temperature: 0.25, responseMimeType: 'application/json' };
-    if (schema) cfg.responseSchema = schema;
-    var body = { contents: [{ role: 'user', parts: parts }], generationConfig: cfg };
-    var res, json = null;
-    try {
-      res = await window.fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify(body)
-      });
-      try { json = await res.json(); } catch (e) { json = null; }
-    } catch (e) {
-      throw new Error('네트워크에 연결하지 못했어요.');
-    }
-    return { res: res, json: json };
-  }
-
-  function geminiModelMissing(res, json) {
-    var em = (json && json.error && json.error.message) ? String(json.error.message) : '';
-    if (res.status === 404) return true;
-    if (res.status === 400 && /model|not found|not supported|unsupported/i.test(em)) return true;
-    return false;
-  }
-
-  async function geminiGenerate(key, model, parts, schema) {
-    var r = await geminiRequest(key, model, parts, schema);
-    if (geminiModelMissing(r.res, r.json)) return null;
-    if (!r.res.ok) {
-      var em = (r.json && r.json.error && r.json.error.message) ? r.json.error.message : ('HTTP ' + r.res.status);
-      throw new Error(em);
-    }
-    var text = geminiExtractText(r.json);
-    if (!text) {
-      var c = r.json && r.json.candidates && r.json.candidates[0];
-      var reason = c && c.finishReason;
-      throw new Error('응답이 비어 있어요' + (reason ? ' (' + reason + ')' : ''));
-    }
-    try { return looseJson(text); } catch (e) { throw new Error('응답을 이해하지 못했어요. 다시 시도해 주세요.'); }
-  }
-
-  async function geminiJSON(parts, schema) {
-    var key = getKey();
-    if (!key) throw new Error('NO_KEY');
-    var list = geminiTryOrder(), i, out;
-    for (i = 0; i < list.length; i++) {
-      out = await geminiGenerate(key, list[i], parts, schema);
-      if (out) { geminiCacheModel(list[i]); return out; }
-    }
-    /* 하드코딩한 모델이 모두 사라졌을 때: 사용 가능한 모델을 직접 찾아 한 번 더 시도 */
-    var found = await geminiListModels(key);
-    var again = geminiTryOrder(found), j;
-    for (j = 0; j < again.length; j++) {
-      if (list.indexOf(again[j]) >= 0) continue;
-      out = await geminiGenerate(key, again[j], parts, schema);
-      if (out) { geminiCacheModel(again[j]); return out; }
-    }
-    throw new Error('이 API 키로 쓸 수 있는 Gemini 모델을 찾지 못했어요. 잠시 후 다시 시도해 주세요.');
+  var aiLast = { pid: '', model: '' };
+  /* 마지막으로 응답한 AI는 화면 표시에만 쓴다 — 사용자가 고른 기본 AI는 건드리지 않는다. */
+  function aiRemember(pid, model) { aiLast = { pid: pid, model: model }; }
+  function aiLastLabel() {
+    var p = aiProviderById(aiLast.pid);
+    return p ? p.label : '';
   }
 
   async function refreshAI() {
     if (ui.aiBusy) return;
     if (ui.readOnly) { toast('보기 전용 계정이라 레시피를 바꿀 수 없어요.', true); return; }
-    if (!getKey()) {
+    if (!aiReady(false)) {
       /* 키가 없으면 기본 레시피(100% 매칭)만 새로 고른다. */
       ui.recipeAll = false;
       renderRecipes();
@@ -3430,7 +3678,9 @@
         '2) 조리 30분 이내 3) 아이도 같이 먹을 수 있는 순한 맛 위주 4) title, minutes(숫자), category, ingredients(재료 배열), steps(조리 순서 3~5단계 배열)를 채우기 ' +
         '5) category는 한식·양식·중식·일식·건강/간편 중 하나로 — 집밥·찌개·볶음류는 한식, 파스타·피자·구이·토스트는 양식, 짜장·짬뽕·마라·탕수육은 중식, 초밥·우동·덮밥·돈가스는 일식, 샐러드·요거트·가벼운 한 그릇은 건강/간편 ' +
         '6) 같은 요리를 중복해서 넣지 말고, 이미 저장된 요리와 이름이 겹치거나 사실상 같은 요리는 빼기.';
-      var out = await geminiJSON([{ text: prompt }], SCHEMA_RECIPES);
+      var out = await aiJSON({ text: prompt }, SCHEMA_RECIPES, {
+        validate: function (d) { return !!(d && Object.prototype.toString.call(d.recipes) === '[object Array]' && d.recipes.length); }
+      });
       var list = (out && out.recipes) || [];
       var clean = [], stockNow = stockNames(), i;
       for (i = 0; i < list.length && i < 8; i++) {
@@ -3496,17 +3746,36 @@
     var keyMsg = ui.keyMsg ? '<p class="form-msg' + (ui.keyMsg.indexOf('ok:') === 0 ? ' ok' : '') + '">' + esc(ui.keyMsg.replace(/^(ok|err):/, '')) + '</p>' : '<p class="form-msg"></p>';
     var d = new Date(cloud.statusAt || Date.now());
     var syncTxt = syncText();
+    var pref = aiPref(), pickBtns = '', pi, pv, on;
+    if (!pref) {
+      for (pi = 0; pi < AI_PROVIDERS.length; pi++) {
+        if (aiKeyOf(AI_PROVIDERS[pi].id)) { pref = AI_PROVIDERS[pi].id; break; }
+      }
+    }
+    for (pi = 0; pi < AI_PROVIDERS.length; pi++) {
+      pv = AI_PROVIDERS[pi];
+      on = (pv.id === pref);
+      var hasKey = !!aiKeyOf(pv.id);
+      var cap = !hasKey ? '키 없음' : (pv.vision.length ? '사진·레시피' : '레시피만');
+      pickBtns += '<button type="button" class="ai-btn' + (on && hasKey ? ' on' : '') + (hasKey ? '' : ' off') + '" data-act="ai-pick" data-pid="' + esc(pv.id) + '" aria-pressed="' + (on && hasKey ? 'true' : 'false') + '">' + esc(pv.label) + '<small>' + esc(cap) + '</small></button>';
+    }
     body.innerHTML = '' +
+      '<div class="set-sec">' +
+        '<h3>🤖 AI 고르기 ' + (aiReady(false) ? '<span class="badge ok">연결됨 ✓</span>' : '<span class="badge">키 없음</span>') + '</h3>' +
+        '<p class="set-info">영수증 인식과 AI 레시피 추천에 먼저 쓸 AI를 골라요.</p>' +
+        '<div class="ai-pick">' + pickBtns + '</div>' +
+        '<p class="set-info" style="margin-top:7px">고른 AI가 20초 안에 답하지 않거나 사용량이 차면 나머지 AI로 자동으로 다시 시도해요.' + (aiLastLabel() ? ' 마지막으로 답한 AI: ' + esc(aiLastLabel()) : '') + '</p>' +
+        '<div class="row"><button class="btn sm sub" type="button" data-act="key-check">연결 확인</button></div>' +
+      '</div>' +
       '<div class="set-sec">' +
         '<h3>✨ Gemini API 키 ' + keyBadge + '</h3>' +
         '<p class="set-info">' + esc(keyInfo) + '</p>' +
         '<div class="row"><input id="keyInput" type="password" placeholder="AQ… 또는 AIza… (새 키로 바꿀 때만 입력)" autocomplete="off" spellcheck="false">' +
         '<button class="btn sm" type="button" data-act="key-save">키 저장</button>' +
-        '<button class="btn sm sub" type="button" data-act="key-check">연결 확인</button>' +
         (origin === 'local' && canEdit() ? '<button class="btn sm sub" type="button" data-act="key-share">가족과 공유</button>' : '') +
         (key ? '<button class="btn sm ghost" type="button" data-act="key-clear">삭제</button>' : '') + '</div>' +
         keyMsg +
-        '<p class="set-info" style="margin-top:6px">무료 키 발급: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>' +
+        '<p class="set-info" style="margin-top:6px">OpenRouter · Groq는 가족 AI 사무실 설정에서 넣은 키를 그대로 함께 써요. 무료 키 발급: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a></p>' +
       '</div>' +
       '<div class="set-sec">' +
         '<h3>💰 월 식비 목표</h3>' +
@@ -3546,12 +3815,11 @@
   }
 
   async function checkKey() {
-    ui.keyMsg = '';
     ui.keyMsg = 'err:확인하는 중…';
     renderSettings();
     try {
-      await geminiJSON([{ text: '연결 확인이야. JSON {"ok":true} 만 답해줘.' }], { type: 'OBJECT', properties: { ok: { type: 'BOOLEAN' } } });
-      ui.keyMsg = 'ok:연결됐어요. 영수증 인식과 AI 식단을 쓸 수 있어요.';
+      await aiJSON({ text: '연결 확인이야. JSON {"ok":true} 만 답해줘.' }, { type: 'OBJECT', properties: { ok: { type: 'BOOLEAN' } } }, {});
+      ui.keyMsg = 'ok:' + (aiLastLabel() ? aiLastLabel() + ' 연결됐어요. ' : '') + '영수증 인식과 AI 레시피를 쓸 수 있어요.';
     } catch (e) {
       ui.keyMsg = 'err:' + msgForError(e);
     }
@@ -3918,6 +4186,7 @@
       if (!canEdit()) { ui.keyMsg = 'err:보기 전용 계정은 키를 바꿀 수 없어요.'; renderSettings(); return; }
       lsSet(KEY_KEY, kv);
       lsDel(KEY_SHARED_KEY);
+      var km0 = aiKeyMap(); km0.gemini = kv; aiSetKeyMap(km0);
       aiSetState({ source: 'local', updatedAt: nowIso(), at: Date.now(), note: '' });
       renderRecipes();
       if (!cloud.conn || !cloud.me) {
@@ -3931,6 +4200,7 @@
         if (r.ok) {
           lsSet(KEY_SHARED_KEY, kv);
           aiSetState({ source: 'shared', updatedAt: r.updatedAt, at: Date.now(), note: '' });
+          aiSetKeyMap(keysFromAiConfig(r.obj));
           ui.keyMsg = 'ok:저장했어요. 가족 모두 이 키를 함께 써요.';
         } else {
           ui.keyMsg = 'err:이 기기에는 저장했지만 가족 공유는 실패했어요 — ' + (r.error || '') ;
@@ -3949,6 +4219,7 @@
         if (r2.ok) {
           lsSet(KEY_SHARED_KEY, shk);
           aiSetState({ source: 'shared', updatedAt: r2.updatedAt, at: Date.now(), note: '' });
+          aiSetKeyMap(keysFromAiConfig(r2.obj));
           ui.keyMsg = 'ok:가족 공유 키로 올렸어요. 다른 기기에서도 자동으로 써요.';
         } else {
           ui.keyMsg = 'err:공유하지 못했어요 — ' + (r2.error || '');
@@ -3964,6 +4235,7 @@
       }
       lsDel(KEY_KEY);
       lsDel(KEY_SHARED_KEY);
+      var km1 = aiKeyMap(); km1.gemini = ''; aiSetKeyMap(km1);
       aiSetState({ source: 'none', updatedAt: nowIso(), at: Date.now(), note: '' });
       ui.keyMsg = 'ok:키를 지웠어요.';
       renderSettings(); renderRecipes();
@@ -3975,6 +4247,19 @@
       return;
     }
     if (act === 'key-check') { checkKey(); return; }
+    if (act === 'ai-pick') {
+      var pid = el.getAttribute('data-pid') || '';
+      var pv = aiProviderById(pid);
+      if (!pv) return;
+      if (!aiKeyOf(pid)) {
+        toast(pv.label + ' 키가 아직 없어요. 가족 AI 사무실 설정에서 키를 넣어 주세요.', true);
+        return;
+      }
+      aiSetPref(pid);
+      renderSettings();
+      toast('🤖 ' + pv.label + '를 먼저 써요' + (pv.vision.length ? '' : ' (사진 인식은 다른 AI가 맡아요)'));
+      return;
+    }
     if (act === 'budget-save') {
       if (ui.readOnly) { toast('보기 전용 계정이에요.', true); return; }
       var b = Math.max(0, Math.round(num(fieldVal('budgetInput'))));
